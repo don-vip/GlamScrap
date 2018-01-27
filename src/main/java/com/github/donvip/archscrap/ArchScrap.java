@@ -77,11 +77,21 @@ public class ArchScrap implements AutoCloseable {
                 case "fetch":
                     app.doFetch(args);
                     break;
+                case "check":
+                    app.doCheck(args);
+                    break;
             }
         } catch (IOException e) {
             LOGGER.catching(e);
         }
         LOGGER.info("Bye!");
+    }
+    
+    public void doCheck(String[] args) throws IOException {
+        Fonds f = searchFonds(args[1]);
+        if (f != null) {
+            LOGGER.info(f.getMissingNotices(session));
+        }
     }
 
     public void doScrap(String[] args) throws IOException {
