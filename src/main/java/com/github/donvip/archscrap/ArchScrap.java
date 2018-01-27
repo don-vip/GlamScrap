@@ -5,10 +5,9 @@ import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import javax.persistence.PersistenceException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,17 +31,16 @@ import de.unihd.dbs.heideltime.standalone.exceptions.DocumentCreationTimeMissing
 import de.unihd.dbs.uima.annotator.heideltime.resources.Language;
 import de.unihd.dbs.uima.types.heideltime.Timex3;
 
-public class ArchScrap {
-    
+public class ArchScrap implements AutoCloseable {
+
     private static final Logger LOGGER = LogManager.getLogger();
     
     private static final String BASE_URL = "http://basededonnees.archives.toulouse.fr/4DCGi/";
 
     // -- Hibernate
-    private final StandardServiceRegistry registry = new StandardServiceRegistryBuilder()
-                                                        .configure() // configures settings from hibernate.cfg.xml
-                                                        .build();
-    private Session session;
+    private final StandardServiceRegistry registry;
+    private final SessionFactory sessionFactory;
+    private final Session session;
 
     // -- HeidelTime
     private static final HeidelTimeStandalone timeNarrative = new HeidelTimeStandalone(
@@ -50,25 +48,67 @@ public class ArchScrap {
     /*private static final HeidelTimeStandalone timeScientific = new HeidelTimeStandalone(
             Language.FRENCH, DocumentType.SCIENTIFIC, OutputType.XMI, "./target/classes/config.windows.props");*/
 
-    private void run() {
+    private ArchScrap() {
         LOGGER.debug("Initializing Hibernate...");
-        try (SessionFactory sessionFactory = new MetadataSources(registry).buildMetadata().buildSessionFactory()) {
-            LOGGER.info("Fetching all image fonds from archives website...");
-            Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
-            if (plan != null) {
-                session = sessionFactory.openSession();
-                Elements allFonds = plan.select("p > a");
-                LOGGER.info("Found {} fonds", allFonds.size());
-                for (Element fonds : allFonds) {
-                    handleFonds(fonds);
-                }
-                session.close();
-            } else {
-                LOGGER.error("Unable to fetch image fonds from archives website");
+        registry = new StandardServiceRegistryBuilder()
+                    .configure() // configures settings from hibernate.cfg.xml
+                    .build();
+        sessionFactory = new MetadataSources(registry).buildMetadata().buildSessionFactory();
+        session = sessionFactory.openSession();
+    }
+
+    @Override
+    public void close() throws IOException {
+        try {
+            session.close();
+        } finally {
+            sessionFactory.close();
+        }
+    }
+
+    public static void main(String[] args) {
+        if (args.length < 1) {
+            LOGGER.info("Usage: ArchScrap scrap [<fonds>[,<fonds>]*] | fetch [<notice>]");
+            return;
+        }
+        try (ArchScrap app = new ArchScrap()) {
+            switch (args[0]) {
+                case "scrap":
+                    app.doScrap(args);
+                    break;
+                case "fetch":
+                    app.doFetch(args);
+                    break;
             }
-            LOGGER.info("Bye!");
-        } catch (IOException | PersistenceException e) {
+        } catch (IOException e) {
             LOGGER.catching(e);
+        }
+        LOGGER.info("Bye!");
+    }
+
+    public void doScrap(String[] args) throws IOException {
+        LOGGER.info("Fetching all image fonds from archives website...");
+        Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
+        if (plan != null) {
+            Elements allFonds = plan.select("p > a");
+            LOGGER.info("Found {} fonds", allFonds.size());
+            for (Element fonds : allFonds) {
+                handleFonds(fonds);
+            }
+        } else {
+            LOGGER.error("Unable to fetch image fonds from archives website");
+        }
+    }
+
+    public void doFetch(String[] args) throws IOException {
+        String cote = args[1];
+        Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+)(\\d+)").matcher(cote);
+        if (m.matches()) {
+            LOGGER.info(searchNotice(
+                    searchFonds(m.group(1)),
+                    Integer.valueOf(m.group(2))));
+        } else {
+            LOGGER.error("Unrecognized cote: {}", cote);
         }
     }
 
@@ -77,16 +117,7 @@ public class ArchScrap {
         Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+) - (.+)").matcher(fondsText);
         if (m.matches()) {
             String cote = m.group(1);
-            session.beginTransaction();
-            Fonds f = session.get(Fonds.class, cote);
-            session.getTransaction().commit();
-            if (f == null) {
-                // New fonds: fetch metadata
-                f = createNewFonds(fondsText, m.group(2), cote);
-                session.beginTransaction();
-                session.save(f);
-                session.getTransaction().commit();
-            }
+            Fonds f = searchFonds(cote);
             if (f.getNotices().size() < f.getExpectedNotices()) {
                 // We have less notices in database than expected
                 // 1. Try to fetch missing notices
@@ -104,53 +135,38 @@ public class ArchScrap {
         }
     }
 
+    private Fonds searchFonds(String cote) throws IOException {
+        // Check to be sure, we don't have it in database
+        session.beginTransaction();
+        Fonds f = session.get(Fonds.class, cote);
+        session.getTransaction().commit();
+        if (f == null) {
+            f = createNewFonds(cote);
+            session.beginTransaction();
+            session.save(f);
+            session.getTransaction().commit();
+        }
+        return f;
+    }
+
     private Notice searchNotice(Fonds f, int i) {
         // Check to be sure, we don't have it in database
         String cote = f.getCote()+i;
+        session.beginTransaction();
         Notice n = session.get(Notice.class, cote);
+        session.getTransaction().commit();
         if (n == null) {
             try {
                 Document desc = fetch(String.format("Web_VoirLaNotice/34_01/%s/ILUMP21411", cote));
                 if (desc != null) {
-                    Element tab = desc.select("#tableau_notice").first();
-                    if (tab != null) {
+                    n = parseNotice(desc, cote);
+                    if (n != null) {
                         session.beginTransaction();
-                        n = new Notice(cote);
-                        Elements firstRow = tab.select("tbody > tr");
-                        // 1. Title
-                        Matcher m = Pattern.compile("(.+) - (.+)").matcher(
-                                firstRow.select("p[align=left]").first().text());
-                        if (m.matches()) {
-                            n.setTitle(m.group(2).trim());
-                        }
-                        // 2. Description
-                        n.setDescription(firstRow.select("p[align=justify] > span").first().text().trim());
-                        // Extract date from description thanks to HeidelTime
-                        extractDate(n.getDescription(), n);
-                        // 3. Author(s)
-                        // 4. Document type
-                        // 5. Technique
-                        // 6. Format
-                        // 7. Support
-                        // 8. Material condition
-                        // 9. Producer
-                        // 10. Classification
-                        // 11. Origin
-                        // 12. Entry mode
-                        // 13. Year of entry
-                        // 14. Rights
-                        // 15. Original consultable
-                        // 16. Observations
-                        // 17. Indexation
-                        // 18. Historical period
-
                         f.getNotices().add(n);
                         n.setFonds(f);
                         session.save(n);
                         session.save(f);
                         session.getTransaction().commit();
-                    } else {
-                        LOGGER.warn("Couldn't parse notice for: {}", cote);
                     }
                 } else {
                     LOGGER.warn("No notice found for: {}", cote);
@@ -160,6 +176,86 @@ public class ArchScrap {
             }
         }
         return n;
+    }
+
+    private Notice parseNotice(Document desc, String cote) {
+        Element tab = desc.select("#tableau_notice").first();
+        if (tab != null) {
+            final Notice n = new Notice(cote);
+            Elements firstRow = tab.select("tbody > tr");
+            // 1. Title
+            Matcher m = Pattern.compile("(.+) - (.+)").matcher(
+                    firstRow.select("p[align=left]").first().text());
+            if (m.matches()) {
+                n.setTitle(m.group(2).trim());
+            }
+            // 2. Description
+            n.setDescription(firstRow.select("p[align=justify] > span").first().text().trim());
+            // Extract date from description thanks to HeidelTime
+            extractDate(n.getDescription(), n);
+            Element span = tab.select("tbody > tr[align=LEFT] > td.tab_premierecondition > span.loupe").first();
+            // 3. Author(s)
+            extractLinks(span, "Auteur(s)", t -> n.getAuthors().add(t.replace(" * [ Auteur ]", "")));
+            // 4. Document type
+            extractTextField(span, "Type document", n::setType);
+            // 5. Technique
+            extractTextField(span, "Technique", n::setTechnique);
+            // 6. Format
+            extractTextField(span, "Format", n::setFormat);
+            // 7. Support
+            extractTextField(span, "Support", n::setSupport);
+            // 8. Material condition
+            extractTextField(span, "Etat matériel", n::setMaterialCondition);
+            // 9. Producer
+            extractLinks(span, "Producteur", n::setProducer);
+            // 10. Classification
+            extractTextField(span, "Plan de classement", t -> n.setClassification(t.substring(0, t.length() - 1)));
+            // 11. Origin
+            extractTextField(span, "Origine du document", n::setOrigin);
+            // 12. Entry mode
+            extractTextField(span, "Mode d\\'entrée", n::setEntryMode);
+            // 13. Year of entry
+            extractYearField(span, "Année d\\'entrée", n::setEntryYear);
+            // 14. Rights
+            extractTextField(span, "Droits", n::setRights);
+            // 15. Original consultable
+            extractBoolField(span, "Original Consultable", n::setOriginalConsultable);
+            // 16. Observations
+            extractTextField(span, "Observation", n::setObservation);
+            // 17. Indexation
+            extractLinks(span, "Termes d\\'indexation", t -> n.getIndexation().add(t.replace(" *", "")));
+            // 18. Historical period
+            extractTextField(span, "Période historique", n::setHistoricalPeriod);
+            return n;
+        } else {
+            LOGGER.warn("Couldn't parse notice for: {}", cote);
+            return null;
+        }
+    }
+
+    private static void extractLinks(Element span, String title, Consumer<String> consumer) {
+        for (Element e : span.select("span.titre:contains("+title+") + span.lien > a")) {
+            consumer.accept(e.text().trim());
+        }
+    }
+
+    private static <T> void extractField(Element span, String title, Consumer<T> consumer, Function<String, T> parser) {
+        Element e = span.select("span.titre:contains("+title+") + span.result").first();
+        if (e != null) {
+            consumer.accept(parser.apply(e.text().trim()));
+        }
+    }
+
+    private static void extractTextField(Element span, String title, Consumer<String> consumer) {
+        extractField(span, title, consumer, s -> s);
+    }
+
+    private static void extractBoolField(Element span, String title, Consumer<Boolean> consumer) {
+        extractField(span, title, consumer, "OUI"::equalsIgnoreCase);
+    }
+
+    private static void extractYearField(Element span, String title, Consumer<Year> consumer) {
+        extractField(span, title, consumer, Year::parse);
     }
 
     static void extractDate(String text, final Notice n) {
@@ -216,19 +312,21 @@ public class ArchScrap {
         }
     }
 
-    private Fonds createNewFonds(String fondsText, String title, String cote) throws IOException {
-        LOGGER.info("New fonds! {}", fondsText);
-        Fonds f = new Fonds(cote, title);
+    private Fonds createNewFonds(String cote) throws IOException {
+        LOGGER.info("New fonds! {}", cote);
+        Fonds f = new Fonds(cote);
         Element fondsDesc = fetch(String.format("Web_FondsCClass%s/ILUMP31929", cote)).select("#notice_sp").first();
         if (fondsDesc != null) {
+            // 0. Search for title
+            f.setTitle(fondsDesc.select(String.format("table > tbody > tr > td > h2:containsOwn(%s) + h2", cote)).first().text());
             // 1. Search for expected number of notices (information always displayed)
             try {
                 f.setExpectedNotices(Integer.valueOf(
                         fondsDesc.select("table > tbody > tr").first()
-                                 .select("span.titre:containsOwn(Nombre d\\'articles) ~ span.result").first()
+                                 .select("span.titre:containsOwn(Nombre d\\'articles) + span.result").first()
                                  .text()));
             } catch (NumberFormatException | NullPointerException | SelectorParseException e) {
-                LOGGER.warn("Unable to fetch number of notices for {}", fondsText);
+                LOGGER.warn("Unable to fetch number of notices for {}", cote);
             }
             // 2. Search for "Note" (optional)
             addOptionalField(fondsDesc, "Note", f::setNote);
@@ -239,14 +337,14 @@ public class ArchScrap {
             // 5. Search for "Reuse conditions" (optional)
             addOptionalField(fondsDesc, "Conditions d\\'utilisation", f::setReuseConditions);
         } else {
-            LOGGER.warn("Unable to fetch fonds description for {}", fondsText);
+            LOGGER.warn("Unable to fetch fonds description for {}", cote);
         }
         return f;
     }
 
     private void addOptionalField(Element desc, String legend, Consumer<String> consumer) {
         try {
-            Element note = desc.select(String.format("legend:containsOwn(%s) ~ div", legend)).first();
+            Element note = desc.select(String.format("legend:containsOwn(%s) + div", legend)).first();
             if (note != null) {
                 consumer.accept(note.text());
             }
@@ -258,9 +356,5 @@ public class ArchScrap {
     private static Document fetch(String doc) throws IOException {
         LOGGER.info("Fetching {}", BASE_URL + doc);
         return Jsoup.connect(BASE_URL + doc).get();
-    }
-
-    public static void main(String[] args) {
-        new ArchScrap().run();
     }
 }

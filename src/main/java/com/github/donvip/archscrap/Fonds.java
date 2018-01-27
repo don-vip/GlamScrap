@@ -33,9 +33,8 @@ public class Fonds {
         // Default constructor
     }
 
-    public Fonds(String cote, String title) {
+    public Fonds(String cote) {
         setCote(cote);
-        setTitle(title);
     }
 
     public String getCote() {
