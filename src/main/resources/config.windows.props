@@ -6,13 +6,13 @@
 considerDate = true
 
 # Duration
-considerDuration = true
+considerDuration = false
 
 # Set
-considerSet = true
+considerSet = false
 
 # Time
-considerTime = true
+considerTime = false
 
 # Temponyms (make sure you know what you do if you set this to "true")
 considerTemponym = false
@@ -21,7 +21,7 @@ considerTemponym = false
 # Path to TreeTagger home directory
 ###################################
 # Ensure there is no white space in path (try to escape white spaces)
-treeTaggerHome = C:\\Users\\vippy\\eclipse-workspace\\ArchScrap\\TreeTagger
+treeTaggerHome = C:\\GIT\\ArchScrap\\TreeTagger
 # This one is only necessary if you want to process chinese documents.
 chineseTokenizerPath = SET ME IN CONFIG.PROPS! (e.g., /home/jannik/treetagger/chinese-tokenizer)
 

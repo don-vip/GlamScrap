@@ -48,6 +48,10 @@ import de.unihd.dbs.uima.types.heideltime.Timex3;
 public class Parser {
 
     private static final Logger LOGGER = LogManager.getLogger();
+    
+    static {
+        java.util.logging.Logger.getLogger("HeidelTimeStandalone").setLevel(java.util.logging.Level.WARNING);
+    }
 
     // -- HeidelTime
     private static final HeidelTimeStandalone timeNarrative = new HeidelTimeStandalone(
@@ -189,6 +193,9 @@ public class Parser {
                     // http://www.timeml.org/publications/timeMLdocs/timeml_1.2.1.html#timex3
                     Timex3 t = (Timex3) iterTimex.next();
                     String v = t.getTimexValue();
+                    if (v.startsWith("XXXX-")) {
+                        continue;
+                    }
                     switch (t.getTimexType()) {
                     case "DATE":
                         switch (v.length()) {
@@ -215,12 +222,9 @@ public class Parser {
                             throw new UnsupportedOperationException(v);
                         }
                     case "DURATION":
-                        continue;
                     case "TIME":
-                        if (v.startsWith("XXXX-XX-XXT")) {
-                            continue;
-                        }
                     case "SET":
+                        continue;
                     default:
                         throw new UnsupportedOperationException(t.getTimexType()+" / "+t.getTimexValue()); 
                     }

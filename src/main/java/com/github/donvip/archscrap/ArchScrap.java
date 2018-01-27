@@ -85,16 +85,22 @@ public class ArchScrap implements AutoCloseable {
     }
 
     public void doScrap(String[] args) throws IOException {
-        LOGGER.info("Fetching all image fonds from archives website...");
-        Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
-        if (plan != null) {
-            Elements allFonds = plan.select("p > a");
-            LOGGER.info("Found {} fonds", allFonds.size());
-            for (Element fonds : allFonds) {
-                handleFonds(fonds);
+        if (args.length <= 1) {
+            LOGGER.info("Fetching all image fonds from archives website...");
+            Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
+            if (plan != null) {
+                Elements allFonds = plan.select("p > a");
+                LOGGER.info("Found {} fonds", allFonds.size());
+                for (Element fonds : allFonds) {
+                    handleFonds(fonds);
+                }
+            } else {
+                LOGGER.error("Unable to fetch image fonds from archives website");
             }
         } else {
-            LOGGER.error("Unable to fetch image fonds from archives website");
+            for (String cote : args[1].split(",")) {
+                scrapFonds(cote);
+            }
         }
     }
 
@@ -114,22 +120,25 @@ public class ArchScrap implements AutoCloseable {
         String fondsText = fonds.text();
         Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+) - (.+)").matcher(fondsText);
         if (m.matches()) {
-            String cote = m.group(1);
-            Fonds f = searchFonds(cote);
-            if (f.getNotices().size() < f.getExpectedNotices()) {
-                // We have less notices in database than expected
-                // 1. Try to fetch missing notices
-                for (int i : f.getMissingNotices(session)) {
-                    searchNotice(f, i);
-                }
-                // 2. Try to search new ones
-                int last = f.getNotices().isEmpty() ? 0 : f.getNotices().get(f.getNotices().size() - 1).getId();  
-                for (int i = last + 1; i < f.getExpectedNotices(); i++) {
-                    searchNotice(f, i);
-                }
-            }
+            scrapFonds(m.group(1));
         } else {
             LOGGER.warn("Unable to parse fonds {}", fondsText);
+        }
+    }
+
+    private void scrapFonds(String cote) throws IOException {
+        Fonds f = searchFonds(cote);
+        if (f.getNotices().size() < f.getExpectedNotices()) {
+            // We have less notices in database than expected
+            // 1. Try to fetch missing notices
+            for (int i : f.getMissingNotices(session)) {
+                searchNotice(f, i);
+            }
+            // 2. Try to search new ones
+            int last = f.getNotices().isEmpty() ? 0 : f.getNotices().get(f.getNotices().size() - 1).getId();  
+            for (int i = last + 1; i <= f.getExpectedNotices(); i++) {
+                searchNotice(f, i);
+            }
         }
     }
 
@@ -140,9 +149,11 @@ public class ArchScrap implements AutoCloseable {
         session.getTransaction().commit();
         if (f == null) {
             f = createNewFonds(cote);
-            session.beginTransaction();
-            session.save(f);
-            session.getTransaction().commit();
+            if (f != null) {
+                session.beginTransaction();
+                session.save(f);
+                session.getTransaction().commit();
+            }
         }
         return f;
     }
