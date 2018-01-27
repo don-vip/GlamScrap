@@ -19,11 +19,13 @@ package com.github.donvip.archscrap;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
+import java.time.format.DateTimeParseException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.uima.cas.FSIterator;
@@ -131,7 +133,12 @@ public class Parser {
             // 12. Entry mode
             extractTextField(span, "Mode d\\'entrée", n::setEntryMode);
             // 13. Year of entry
-            extractYearField(span, "Année d\\'entrée", n::setEntryYear);
+            try {
+                extractYearField(span, "Année d\\'entrée", n::setEntryYear);
+            } catch (DateTimeParseException ex) {
+                LOGGER.error("Unable to parse year for notice {}: {}", cote, ex.getMessage());
+                LOGGER.catching(Level.DEBUG, ex);
+            }
             // 14. Rights
             extractTextField(span, "Droits", n::setRights);
             // 15. Original consultable
