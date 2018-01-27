@@ -17,16 +17,20 @@
 package com.github.donvip.archscrap;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.hibernate.HibernateException;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
 import org.hibernate.boot.MetadataSources;
 import org.hibernate.boot.registry.StandardServiceRegistry;
 import org.hibernate.boot.registry.StandardServiceRegistryBuilder;
+import org.hibernate.internal.SessionImpl;
+import org.hsqldb.util.DatabaseManagerSwing;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -80,13 +84,25 @@ public class ArchScrap implements AutoCloseable {
                 case "check":
                     app.doCheck(args);
                     break;
+                case "gui":
+                    app.launchGui(args);
+                    break;
             }
         } catch (IOException e) {
             LOGGER.catching(e);
         }
         LOGGER.info("Bye!");
     }
-    
+
+    private void launchGui(String[] args) {
+        try {
+            DatabaseManagerSwing.main(new String[] {
+                    "--url", ((SessionImpl) session).connection().getMetaData().getURL()});
+        } catch (HibernateException | SQLException e) {
+            LOGGER.catching(e);
+        }
+    }
+
     public void doCheck(String[] args) throws IOException {
         Fonds f = searchFonds(args[1]);
         if (f != null) {

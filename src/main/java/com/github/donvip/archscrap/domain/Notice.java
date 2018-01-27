@@ -21,6 +21,8 @@ import java.time.Year;
 import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
@@ -71,8 +73,12 @@ public class Notice {
 
     public Notice(String cote) {
         setCote(cote);
+        Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+)(\\d+)").matcher(cote);
+        if (m.matches()) {
+            setId(Integer.valueOf(m.group(2)));
+        }
     }
-    
+
     public String getCote() {
         return cote;
     }

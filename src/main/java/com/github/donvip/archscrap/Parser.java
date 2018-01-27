@@ -20,6 +20,7 @@ import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
 import java.time.format.DateTimeParseException;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Matcher;
@@ -56,8 +57,6 @@ public class Parser {
     // -- HeidelTime
     private static final HeidelTimeStandalone timeNarrative = new HeidelTimeStandalone(
             Language.FRENCH, DocumentType.NARRATIVES, OutputType.XMI, "./target/classes/config.windows.props");
-    /*private static final HeidelTimeStandalone timeScientific = new HeidelTimeStandalone(
-            Language.FRENCH, DocumentType.SCIENTIFIC, OutputType.XMI, "./target/classes/config.windows.props");*/
 
     public static Fonds parseFonds(Document desc, String cote) {
         Element fondsDesc = desc.select("#notice_sp").first();
@@ -113,21 +112,25 @@ public class Parser {
             }
             // 2. Description
             n.setDescription(firstRow.select("p[align=justify] > span").first().text().trim());
-            // Extract date from description thanks to HeidelTime
-            extractDate(n.getDescription(), n);
+            // Extract date from description (or title) thanks to HeidelTime
+            if (extractDate(n.getDescription(), n) == null) {
+                extractDate(n.getTitle(), n);
+            }
             Element span = tab.select("tbody > tr[align=LEFT] > td.tab_premierecondition > span.loupe").first();
             // 3. Author(s)
-            extractLinks(span, "Auteur(s)", t -> n.getAuthors().add(t.replace(" * [ Auteur ]", "")));
+            extractLinks(span, "Auteur(s)", t -> n.getAuthors().add(t
+                    .replaceAll("(?i) * [ Auteur ]", "")
+                    .replaceAll("(?i) * [ Photographe ]", "")));
             // 4. Document type
             extractTextField(span, "Type document", n::setType);
             // 5. Technique
             extractTextField(span, "Technique", n::setTechnique);
             // 6. Format
-            extractTextField(span, "Format", n::setFormat);
+            extractTextField(span, "Format", t -> n.setFormat(t.replace(" cm", "")));
             // 7. Support
             extractTextField(span, "Support", n::setSupport);
             // 8. Material condition
-            extractTextField(span, "Etat matériel", n::setMaterialCondition);
+            extractTextField(span, "Etat matériel", t -> n.setMaterialCondition(t.toUpperCase(Locale.FRANCE)));
             // 9. Producer
             extractLinks(span, "Producteur", n::setProducer);
             // 10. Classification
@@ -185,7 +188,7 @@ public class Parser {
         extractField(span, title, consumer, Year::parse);
     }
 
-    static void extractDate(String text, final Notice n) {
+    static String extractDate(String text, final Notice n) {
         try {
             ResultFormatter resultFormatter = jcas -> {
                 FSIterator<?> iterTimex = jcas.getAnnotationIndex(Timex3.type).iterator();
@@ -231,11 +234,10 @@ public class Parser {
                 }
                 return null;
             };
-            if (timeNarrative.process(text, resultFormatter) == null) {
-                //timeScientific.process(text, resultFormatter);
-            }
+            return timeNarrative.process(text, resultFormatter);
         } catch (DocumentCreationTimeMissingException e) {
             LOGGER.catching(e);
+            return null;
         }
     }
 }
