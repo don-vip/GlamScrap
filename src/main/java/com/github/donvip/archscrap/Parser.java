@@ -109,6 +109,9 @@ public class Parser {
                     firstRow.select("p[align=left]").first().text());
             if (m.matches()) {
                 n.setTitle(m.group(2).trim());
+            } else {
+                LOGGER.error("Empty notice for {}", cote);
+                return null;
             }
             // 2. Description
             n.setDescription(firstRow.select("p[align=justify] > span").first().text().trim());
