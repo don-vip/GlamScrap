@@ -204,27 +204,28 @@ public class Parser {
                     }
                     switch (t.getTimexType()) {
                     case "DATE":
-                        switch (v.length()) {
-                        case 10: // YYYY-MM-DD
+                        if ("XXXX".equals(v) || v.matches(".*_REF")) { // XXXX, PAST_REF, PRESENT_REF, FUTURE_REF
+                            continue;
+                        } else if (v.matches("\\d{4}-\\d{2}-\\d{2}")) { // YYYY-MM-DD
                             LocalDate d = LocalDate.parse(v);
                             n.setDate(d);
                             n.setYearMonth(YearMonth.of(d.getYear(), d.getMonth()));
                             n.setYear(Year.of(d.getYear()));
                             return d.toString();
-                        case 7: // YYYY-MM
+                        } else if (v.matches("\\d{4}-\\d{2}")) { // YYYY-MM
                             YearMonth ym = YearMonth.parse(v);
                             n.setYearMonth(ym);
                             n.setYear(Year.of(ym.getYear()));
                             return ym.toString();
-                        case 4: // YYYY
+                        } else if (v.matches("(\\d{4})-(WI|SP|SU|AU)")) { // YYYY-Season
+                            n.setYear(Year.parse(v.substring(0, v.indexOf('-'))));
+                            return n.getYear().toString();
+                        } else if (v.matches("\\d{4}")) { // YYYY
                             n.setYear(Year.parse(v));
                             return n.getYear().toString();
-                        case 2: // Century ?
+                        } else if (v.matches("\\d{2}")) { // Century ?
                             continue;
-                        default:
-                            if ("PRESENT_REF".equals(v)) {
-                                continue;
-                            }
+                        } else {
                             throw new UnsupportedOperationException(v);
                         }
                     case "DURATION":

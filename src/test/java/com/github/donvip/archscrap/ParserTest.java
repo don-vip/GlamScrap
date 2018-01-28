@@ -44,10 +44,13 @@ public class ParserTest {
                 Year.of(1950));
         doTestDate("Rue Matabiau, place Roquelaine. Août 1944. Vue d'ensemble d'une barricade ;",
                 YearMonth.of(1944, Month.AUGUST));
+        doTestDate("Esquisse représentant les Cathares. Peinture de Raymond Moretti pour illustrer le plafond des arcades de la Place du Capitole. Version reproduite à la Galerue des Arcades. Après dix mois de siège, la citadelle est vaincue à l'hiver 1244.",
+                Year.of(1244));
         /*doTestDate("28.10.72 1er Vol d'Airbus",
                 LocalDate.of(1972, Month.OCTOBER, 28));
         doTestDate("28.10.72 1er Vol d'Airbus (1972)",
                 LocalDate.of(1972, Month.OCTOBER, 28));*/
+        // Fetching http://basededonnees.archives.toulouse.fr/4DCGi/Web_VoirLaNotice/34_01/33Fi9/ILUMP21411
     }
 
     private static void doTestDate(String text, LocalDate date) {

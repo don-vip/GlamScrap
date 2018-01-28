@@ -28,7 +28,6 @@ import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.Id;
-import javax.persistence.Lob;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
@@ -40,7 +39,7 @@ public class Notice {
     private String cote;
     private int id;
     private String title;
-    @Column(length = 768)
+    @Column(length = 3328)
     private String description;
     private LocalDate date;
     private YearMonth yearMonth;
@@ -62,7 +61,7 @@ public class Notice {
     @Column(length = 864)
     private String rights;
     private boolean originalConsultable;
-    @Lob
+    @Column(length = 1600)
     private String observation;
     @ElementCollection
     private List<String> indexation = new ArrayList<>();
