@@ -19,6 +19,7 @@ package com.github.donvip.archscrap.domain;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Lob;
@@ -37,7 +38,7 @@ public class Fonds {
     private String note;
     @Lob
     private String summary;
-    @Lob
+    @Column(length = 288)
     private String accessConditions;
     @Lob
     private String reuseConditions;

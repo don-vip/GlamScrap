@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -39,7 +40,7 @@ public class Notice {
     private String cote;
     private int id;
     private String title;
-    @Lob
+    @Column(length = 768)
     private String description;
     private LocalDate date;
     private YearMonth yearMonth;
@@ -58,7 +59,7 @@ public class Notice {
     private String origin;
     private String entryMode;
     private Year entryYear;
-    @Lob
+    @Column(length = 864)
     private String rights;
     private boolean originalConsultable;
     @Lob

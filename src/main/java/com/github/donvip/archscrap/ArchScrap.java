@@ -18,6 +18,8 @@ package com.github.donvip.archscrap;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -115,10 +117,16 @@ public class ArchScrap implements AutoCloseable {
             LOGGER.info("Fetching all image fonds from archives website...");
             Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
             if (plan != null) {
-                Elements allFonds = plan.select("p > a");
-                LOGGER.info("Found {} fonds", allFonds.size());
-                for (Element fonds : allFonds) {
-                    handleFonds(fonds);
+                List<Fonds> allFonds = new ArrayList<>();
+                Elements links = plan.select("p > a");
+                LOGGER.info("Found {} fonds", links.size());
+                // First list all fonds
+                for (Element e : links) {
+                    allFonds.add(extractFonds(e));
+                }
+                // Then scrap them
+                for (Fonds f : allFonds) {
+                    scrapFonds(f);
                 }
             } else {
                 LOGGER.error("Unable to fetch image fonds from archives website");
@@ -142,19 +150,23 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
-    private void handleFonds(Element fonds) throws IOException {
+    private Fonds extractFonds(Element fonds) throws IOException {
         String fondsText = fonds.text();
         Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+) - (.+)").matcher(fondsText);
         if (m.matches()) {
-            scrapFonds(m.group(1));
+            return searchFonds(m.group(1));
         } else {
             LOGGER.warn("Unable to parse fonds {}", fondsText);
+            return null;
         }
     }
 
     private void scrapFonds(String cote) throws IOException {
-        Fonds f = searchFonds(cote);
-        if (f.getNotices().size() < f.getExpectedNotices()) {
+        scrapFonds(searchFonds(cote));
+    }
+
+    private void scrapFonds(Fonds f) throws IOException {
+        if (f != null && f.getNotices().size() < f.getExpectedNotices()) {
             // We have less notices in database than expected
             // 1. Try to fetch missing notices
             for (int i : f.getMissingNotices(session)) {
