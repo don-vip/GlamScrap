@@ -61,7 +61,7 @@ public class Notice {
     @Column(length = 896)
     private String rights;
     private boolean originalConsultable;
-    @Column(length = 2560)
+    @Column(length = 2736)
     private String observation;
     @ElementCollection
     private List<String> indexation = new ArrayList<>();
