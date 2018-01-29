@@ -223,7 +223,7 @@ public class Parser {
                         } else if (v.matches("\\d{4}")) { // YYYY
                             n.setYear(Year.parse(v));
                             return n.getYear().toString();
-                        } else if (v.matches("\\d{2}")) { // Century ?
+                        } else if (v.matches("\\d{2}") || v.matches("\\d{3}")) { // Century, decade
                             continue;
                         } else {
                             throw new UnsupportedOperationException(v);

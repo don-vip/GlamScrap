@@ -23,6 +23,7 @@ import java.time.Month;
 import java.time.Year;
 import java.time.YearMonth;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.github.donvip.archscrap.domain.Notice;
@@ -33,24 +34,59 @@ import com.github.donvip.archscrap.domain.Notice;
 public class ParserTest {
 
     @Test
-    public void testExtractDate() {
+    public void testExtractDate1() {
         doTestDate("2 mai 1937. Photographie d'un groupe de six personnes",
                 LocalDate.of(1937, Month.MAY, 2));
+    }
+
+    @Test
+    public void testExtractDate2() {
         doTestDate("1987. Laissez-passer voiture presse délivré à M. André Cros par le Comité des Pyrénées de la Fédération française de rugby, pour la saison 1987 - 1988 de la section rugby du Stade toulousain",
                 Year.of(1987));
+    }
+
+    @Test
+    public void testExtractDate3() {
         doTestDate("Tour de Contrôle (Blagnac). 28 octobre 1972. Vue d'ensemble d'un homme de dos, d'une jeune femme et d'une petite fille (épouse et fille de Bernard Ziegler, un des pilotes de l'équipage du vol d'essai) sortant de la tour de contrôle. ",
                 LocalDate.of(1972, Month.OCTOBER, 28));
+    }
+
+    @Test
+    public void testExtractDate4() {
         doTestDate("Rue du Midi. Années 1950. Vue perspective descendante de la rue du Midi au niveau des n°20 et 13.",
                 Year.of(1950));
+    }
+
+    @Test
+    public void testExtractDate5() {
         doTestDate("Rue Matabiau, place Roquelaine. Août 1944. Vue d'ensemble d'une barricade ;",
                 YearMonth.of(1944, Month.AUGUST));
+    }
+
+    @Test
+    public void testExtractDate6() {
         doTestDate("Esquisse représentant les Cathares. Peinture de Raymond Moretti pour illustrer le plafond des arcades de la Place du Capitole. Version reproduite à la Galerue des Arcades. Après dix mois de siège, la citadelle est vaincue à l'hiver 1244.",
                 Year.of(1244));
-        /*doTestDate("28.10.72 1er Vol d'Airbus",
+    }
+
+    @Test
+    public void testExtractDate7() {
+        doTestDate("Vallée de Héas, commune de Gèdre (Haute-Pyrenées). Gravure de Mellin ( début XIX° ) rééditée dans les années 1980. Vue d'ensemble de la vallée d'Héas.",
+                (Year) null);
+    }
+
+    @Test
+    @Ignore
+    public void testExtractDate8() {
+        doTestDate("28.10.72 1er Vol d'Airbus",
                 LocalDate.of(1972, Month.OCTOBER, 28));
+    }
+
+    @Test
+    @Ignore
+    public void testExtractDate9() {
         doTestDate("28.10.72 1er Vol d'Airbus (1972)",
-                LocalDate.of(1972, Month.OCTOBER, 28));*/
-        // Fetching http://basededonnees.archives.toulouse.fr/4DCGi/Web_VoirLaNotice/34_01/33Fi9/ILUMP21411
+                LocalDate.of(1972, Month.OCTOBER, 28));
     }
 
     private static void doTestDate(String text, LocalDate date) {
