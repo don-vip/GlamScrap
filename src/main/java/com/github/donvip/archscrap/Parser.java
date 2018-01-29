@@ -204,27 +204,18 @@ public class Parser {
                     }
                     switch (t.getTimexType()) {
                     case "DATE":
-                        if ("XXXX".equals(v) || v.matches(".*_REF")) { // XXXX, PAST_REF, PRESENT_REF, FUTURE_REF
-                            continue;
+                        if ("XXXX".equals(v) || v.matches(".*_REF") || v.matches("\\d{2}") || v.matches("\\d{3}")) {
+                            continue; // XXXX, PAST_REF, PRESENT_REF, FUTURE_REF, Century, decade
                         } else if (v.matches("\\d{4}-\\d{2}-\\d{2}")) { // YYYY-MM-DD
-                            LocalDate d = LocalDate.parse(v);
-                            n.setDate(d);
-                            n.setYearMonth(YearMonth.of(d.getYear(), d.getMonth()));
-                            n.setYear(Year.of(d.getYear()));
-                            return d.toString();
+                            return parseLocalDate(n, v);
+                        } else if (v.matches("\\d{4}-\\d{2}-\\d{1}")) { // YYYY-MM-D
+                            return parseLocalDate(n, new StringBuilder(v).insert(v.length()-1, "0").toString());
                         } else if (v.matches("\\d{4}-\\d{2}")) { // YYYY-MM
-                            YearMonth ym = YearMonth.parse(v);
-                            n.setYearMonth(ym);
-                            n.setYear(Year.of(ym.getYear()));
-                            return ym.toString();
+                            return parseYearMonth(n, v);
                         } else if (v.matches("(\\d{4})-(WI|SP|SU|AU)")) { // YYYY-Season
-                            n.setYear(Year.parse(v.substring(0, v.indexOf('-'))));
-                            return n.getYear().toString();
+                            return parseYear(n, v.substring(0, v.indexOf('-')));
                         } else if (v.matches("\\d{4}")) { // YYYY
-                            n.setYear(Year.parse(v));
-                            return n.getYear().toString();
-                        } else if (v.matches("\\d{2}") || v.matches("\\d{3}")) { // Century, decade
-                            continue;
+                            return parseYear(n, v);
                         } else {
                             throw new UnsupportedOperationException(v);
                         }
@@ -243,5 +234,25 @@ public class Parser {
             LOGGER.catching(e);
             return null;
         }
+    }
+
+    private static String parseYear(final Notice n, String v) {
+        n.setYear(Year.parse(v));
+        return n.getYear().toString();
+    }
+
+    private static String parseYearMonth(final Notice n, String v) {
+        YearMonth ym = YearMonth.parse(v);
+        n.setYearMonth(ym);
+        n.setYear(Year.of(ym.getYear()));
+        return ym.toString();
+    }
+
+    private static String parseLocalDate(final Notice n, String v) {
+        LocalDate d = LocalDate.parse(v);
+        n.setDate(d);
+        n.setYearMonth(YearMonth.of(d.getYear(), d.getMonth()));
+        n.setYear(Year.of(d.getYear()));
+        return d.toString();
     }
 }

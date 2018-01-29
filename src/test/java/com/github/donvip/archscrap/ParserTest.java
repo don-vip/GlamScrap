@@ -89,6 +89,12 @@ public class ParserTest {
                 LocalDate.of(1972, Month.OCTOBER, 28));
     }
 
+    @Test
+    public void testExtractDate10() {
+        doTestDate("15 place du Président-Wilson. Carte photographique de la terrasse du grand café restaurant Lafayette avec le personnel posant devant. Mention sur l'image: \"Baron E. Duquesne, 3-2-1913\". Au verso, mention manuscrite: \"Café - Rest Lafayette Toulouse 3 février 1913\".\"",
+                LocalDate.of(1913, Month.FEBRUARY, 3));
+    }
+
     private static void doTestDate(String text, LocalDate date) {
         doTestDate(text, Year.of(date.getYear()), YearMonth.of(date.getYear(), date.getMonth()), date);
     }
