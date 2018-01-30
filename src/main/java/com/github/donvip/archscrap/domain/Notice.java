@@ -38,6 +38,7 @@ public class Notice {
     @Id
     private String cote;
     private int id;
+    @Column(length = 448)
     private String title;
     @Column(length = 3328)
     private String description;
