@@ -59,7 +59,7 @@ public class Notice {
     private String origin;
     private String entryMode;
     private Year entryYear;
-    @Column(length = 896)
+    @Column(length = 976)
     private String rights;
     private boolean originalConsultable;
     @Column(length = 2736)
