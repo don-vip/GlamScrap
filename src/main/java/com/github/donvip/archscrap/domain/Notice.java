@@ -40,7 +40,7 @@ public class Notice {
     private int id;
     @Column(length = 288)
     private String title;
-    @Column(length = 3328)
+    @Column(length = 6400)
     private String description;
     private LocalDate date;
     private YearMonth yearMonth;
@@ -56,6 +56,7 @@ public class Notice {
     private Fonds fonds;
     private String producer;
     private String classification;
+    @Column(length = 432)
     private String origin;
     private String entryMode;
     private Year entryYear;

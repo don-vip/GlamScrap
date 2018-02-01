@@ -167,15 +167,28 @@ public class ArchScrap implements AutoCloseable {
 
     private void scrapFonds(Fonds f) throws IOException {
         if (f != null && f.getNotices().size() < f.getExpectedNotices()) {
+            boolean fi16 = "16Fi".equals(f.getCote());
             // We have less notices in database than expected
-            // 1. Try to fetch missing notices
-            for (int i : f.getMissingNotices(session)) {
-                searchNotice(f, i);
-            }
-            // 2. Try to search new ones
-            int last = f.getNotices().isEmpty() ? 0 : f.getNotices().get(f.getNotices().size() - 1).getId();  
-            for (int i = last + 1; i <= f.getExpectedNotices(); i++) {
-                searchNotice(f, i);
+            if (fi16) {
+                // Load all albums notices
+                for (int i = 1; i <= 81; i++) {
+                    Notice album = searchNotice(f, i);
+                    if (album != null) {
+                        for (int j = 1; searchNotice(f, i, j) != null; j++) {
+                            LOGGER.trace(j);
+                        }
+                    }
+                }
+            } else {
+                // 1. Try to fetch missing notices
+                for (int i : f.getMissingNotices(session)) {
+                    searchNotice(f, i);
+                }
+                // 2. Try to search new ones
+                int last = f.getNotices().isEmpty() ? 0 : f.getNotices().get(f.getNotices().size() - 1).getId();  
+                for (int i = last + 1; i <= f.getExpectedNotices(); i++) {
+                    searchNotice(f, i);
+                }
             }
         }
     }
@@ -197,14 +210,21 @@ public class ArchScrap implements AutoCloseable {
     }
 
     private Notice searchNotice(Fonds f, int i) {
+        return searchNotice(f, i, -1);
+    }
+
+    private Notice searchNotice(Fonds f, int i, int j) {
         // Check to be sure, we don't have it in database
         String cote = f.getCote()+i;
+        if (j > -1) {
+            cote += "/" + j;
+        }
         session.beginTransaction();
         Notice n = session.get(Notice.class, cote);
         session.getTransaction().commit();
         if (n == null) {
             try {
-                Document desc = fetch(String.format("Web_VoirLaNotice/34_01/%s/ILUMP21411", cote));
+                Document desc = fetch(String.format("Web_VoirLaNotice/34_01/%s/ILUMP21411", cote.replace("/", "xzx")));
                 if (desc != null) {
                     n = Parser.parseNotice(desc, cote);
                     if (n != null) {
