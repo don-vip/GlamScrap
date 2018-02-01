@@ -122,8 +122,10 @@ public class Fonds {
     public List<Integer> getMissingNotices(Session session) {
         // https://stackoverflow.com/a/48446303/2257172
         return session.createNativeQuery(String.format(
-                "SELECT id FROM UNNEST (SEQUENCE_ARRAY((SELECT MIN(id) FROM Notices), (SELECT MAX(id) FROM Notices), 1)) SEQ(id)" + 
-                "LEFT OUTER JOIN Notices ON Notices.id = SEQ.id WHERE Notices.id IS NULL AND Notices.fonds_cote = '%s'", cote)).list();
+                "SELECT DISTINCT(id) FROM UNNEST (SEQUENCE_ARRAY((SELECT MIN(id) FROM Notices WHERE Notices.fonds_cote = '%s'), "+
+                                                                "(SELECT MAX(id) FROM Notices WHERE Notices.fonds_cote = '%s'), 1)) SEQ(id)" + 
+                "LEFT OUTER JOIN Notices ON Notices.id = SEQ.id WHERE NOT EXISTS(SELECT n.id FROM Notices n WHERE n.id = Notices.id AND n.fonds_cote = '%s')",
+                cote, cote, cote)).list();
     }
 
     @Override

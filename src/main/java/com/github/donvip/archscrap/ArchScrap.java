@@ -19,6 +19,7 @@ package com.github.donvip.archscrap;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -106,35 +107,52 @@ public class ArchScrap implements AutoCloseable {
     }
 
     public void doCheck(String[] args) throws IOException {
-        Fonds f = searchFonds(args[1]);
+        if (args.length <= 1) {
+            // Check all fonds
+            for (Fonds f : fetchAllFonds()) {
+                checkFonds(f);
+            }
+        } else {
+            for (String cote : args[1].split(",")) {
+                checkFonds(searchFonds(cote));
+            }
+        }
+    }
+
+    private void checkFonds(Fonds f) {
         if (f != null) {
-            LOGGER.info(f.getMissingNotices(session));
+            List<Integer> missing = f.getMissingNotices(session);
+            LOGGER.info(f.getCote() + ": " + (missing.isEmpty() ? "OK" : "KO (missing: " + missing + ")"));
         }
     }
 
     public void doScrap(String[] args) throws IOException {
         if (args.length <= 1) {
-            LOGGER.info("Fetching all image fonds from archives website...");
-            Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
-            if (plan != null) {
-                List<Fonds> allFonds = new ArrayList<>();
-                Elements links = plan.select("p > a");
-                LOGGER.info("Found {} fonds", links.size());
-                // First list all fonds
-                for (Element e : links) {
-                    allFonds.add(extractFonds(e));
-                }
-                // Then scrap them
-                for (Fonds f : allFonds) {
-                    scrapFonds(f);
-                }
-            } else {
-                LOGGER.error("Unable to fetch image fonds from archives website");
+            // Scrap all fonds
+            for (Fonds f : fetchAllFonds()) {
+                scrapFonds(f);
             }
         } else {
             for (String cote : args[1].split(",")) {
                 scrapFonds(cote);
             }
+        }
+    }
+
+    private List<Fonds> fetchAllFonds() throws IOException {
+        LOGGER.info("Fetching all image fonds from archives website...");
+        Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
+        if (plan != null) {
+            List<Fonds> allFonds = new ArrayList<>();
+            Elements links = plan.select("p > a");
+            LOGGER.info("Found {} fonds", links.size());
+            for (Element e : links) {
+                allFonds.add(extractFonds(e));
+            }
+            return allFonds;
+        } else {
+            LOGGER.error("Unable to fetch image fonds from archives website");
+            return Collections.emptyList();
         }
     }
 
