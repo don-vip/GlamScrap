@@ -110,7 +110,7 @@ public class Parser {
             if (m.matches()) {
                 n.setTitle(m.group(2).trim());
             } else {
-                if (!cote.matches("\\d+Fi/\\d+")) {
+                if (!cote.matches("\\d+Fi\\d+/\\d+")) {
                     LOGGER.error("Empty notice for {}", cote);
                 }
                 return null;

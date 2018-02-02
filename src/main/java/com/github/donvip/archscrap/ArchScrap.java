@@ -20,7 +20,9 @@ import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
@@ -49,6 +51,13 @@ public class ArchScrap implements AutoCloseable {
     private static final Logger LOGGER = LogManager.getLogger();
     
     private static final String BASE_URL = "http://basededonnees.archives.toulouse.fr/4DCGi/";
+
+    private static final Map<String, Integer> ALBUMS = new HashMap<>();
+    static {
+        ALBUMS.put("16Fi", 81);
+        ALBUMS.put("38Fi", 39);
+        ALBUMS.put("39Fi", 11);
+    }
 
     // -- Hibernate
     private final StandardServiceRegistry registry;
@@ -125,8 +134,14 @@ public class ArchScrap implements AutoCloseable {
 
     private void checkFonds(Fonds f) {
         if (f != null) {
-            List<Integer> missing = f.getMissingNotices(session);
-            LOGGER.info(f.getCote() + ": " + (missing.isEmpty() ? "OK" : "KO (missing: " + missing + ")"));
+            List<Integer> missing = f.getMissingNotices(session,
+                    ALBUMS.containsKey(f.getCote()) ? ALBUMS.get(f.getCote()) : f.getExpectedNotices());
+            if (missing.isEmpty()) {
+                LOGGER.info(f.getCote() + ": OK");
+            } else {
+                int percent = (int) (100d * (double) missing.size() / (double) f.getExpectedNotices());
+                LOGGER.warn(f.getCote() + ": KO (missing "+percent+"%: " + missing + ")");
+            }
         }
     }
 
@@ -193,11 +208,10 @@ public class ArchScrap implements AutoCloseable {
 
     private void scrapFonds(Fonds f) throws IOException {
         if (f != null && f.getNotices().size() < f.getExpectedNotices()) {
-            boolean fi16 = "16Fi".equals(f.getCote());
             // We have less notices in database than expected
-            if (fi16) {
+            if (ALBUMS.containsKey(f.getCote())) {
                 // Load all albums notices
-                for (int i = 1; i <= 81; i++) {
+                for (int i = 1; i <= ALBUMS.get(f.getCote()); i++) {
                     Notice album = searchNotice(f, i);
                     if (album != null) {
                         for (int j = 1; searchNotice(f, i, j) != null; j++) {
