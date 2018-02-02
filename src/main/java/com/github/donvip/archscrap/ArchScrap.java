@@ -21,6 +21,8 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -52,6 +54,8 @@ public class ArchScrap implements AutoCloseable {
     private final StandardServiceRegistry registry;
     private final SessionFactory sessionFactory;
     private final Session session;
+
+    private final Set<String> missedNotices = new TreeSet<>();
 
     private ArchScrap() {
         LOGGER.debug("Initializing Hibernate...");
@@ -127,6 +131,7 @@ public class ArchScrap implements AutoCloseable {
     }
 
     public void doScrap(String[] args) throws IOException {
+        missedNotices.clear();
         if (args.length <= 1) {
             // Scrap all fonds
             for (Fonds f : fetchAllFonds()) {
@@ -136,6 +141,9 @@ public class ArchScrap implements AutoCloseable {
             for (String cote : args[1].split(",")) {
                 scrapFonds(cote);
             }
+        }
+        if (!missedNotices.isEmpty()) {
+            LOGGER.error("Missed {} notices: {}", missedNotices.size(), missedNotices);
         }
     }
 
