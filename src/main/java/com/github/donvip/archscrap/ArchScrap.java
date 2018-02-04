@@ -21,6 +21,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -62,12 +63,40 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
+    private static class Range {
+        final int min;
+        int max;
+
+        public Range(int val) {
+            this(val, val);
+        }
+
+        public Range(int min, int max) {
+            this.min = min;
+            this.max = max;
+        }
+
+        @Override
+        public String toString() {
+            return min != max ? min + "-" + max : Integer.toString(min);
+        }
+
+        public boolean contains(int i) {
+            return min <= i && i <= max;
+        }
+    }
+
     private static final Map<String, Album> ALBUMS = new HashMap<>();
     static {
         ALBUMS.put("16Fi", new Album(81, false));
         ALBUMS.put("38Fi", new Album(39, false));
         ALBUMS.put("39Fi", new Album(11, false));
         ALBUMS.put("1Num", new Album(15, true));
+    }
+    
+    private static final Map<String, Range> ALLOWED_GAPS = new HashMap<>();
+    static {
+        ALLOWED_GAPS.put("24Fi", new Range(215, 99));
     }
 
     // -- Hibernate
@@ -150,10 +179,14 @@ public class ArchScrap implements AutoCloseable {
             if (got >= expected) {
                 LOGGER.info("{}: : OK", f.getCote());
             } else {
-                List<Integer> missing = new ArrayList<>(expected - got);
+                LinkedList<Range> missing = new LinkedList<>();
                 for (int i = 1; i <= expected; i++) {
-                    if (searchNotice(f, i, -1, false) == null) {
-                        missing.add(i);
+                    if (searchNotice(f, i, -1, false) == null && searchNotice(f, i, 1, false) == null) {
+                        if (!missing.isEmpty() && missing.getLast().max == i-1) {
+                            missing.getLast().max = i;
+                        } else {
+                            missing.add(new Range(i));
+                        }
                     }
                 }
                 LOGGER.warn("{}: : KO (expected: {}; got: {}; missing: {})", f.getCote(), expected, got, missing);
@@ -224,22 +257,42 @@ public class ArchScrap implements AutoCloseable {
 
     private void scrapFonds(Fonds f) throws IOException {
         // Do we have less notices in database than expected?
-        if (f != null && f.getFetchedNotices(session) < f.getExpectedNotices()) {
+        int expected = f.getExpectedNotices();
+        if (f != null && f.getFetchedNotices(session) < expected) {
             // Special handling of albums collections
             if (ALBUMS.containsKey(f.getCote())) {
                 Album album = ALBUMS.get(f.getCote());
                 for (int i = 1; i <= album.numberOfAlbums; i++) {
                     if (searchNotice(f, i) != null || album.allowEmptyAlbumNotices) {
-                        for (int j = 1; searchNotice(f, i, j, true) != null; j++) {
-                            LOGGER.trace(j);
-                        }
+                        scrapAlbum(f, i, 1);
                     }
                 }
             } else {
-                for (int i = 1; i <= f.getExpectedNotices(); i++) {
-                    searchNotice(f, i);
+                // base search
+                scrapFondsNotices(f, expected, 1, expected);
+                // extend search by number of missing notices
+                scrapFondsNotices(f, expected, expected + 1, expected + missedNotices.size());
+            }
+        }
+    }
+
+    private void scrapFondsNotices(Fonds f, int expected, int start, int end) {
+        Range allowedGap = ALLOWED_GAPS.get(f.getCote());
+        for (int i = start; i <= end && f.getFetchedNotices(session) < expected; i++) {
+            if (allowedGap == null || !allowedGap.contains(i)) {
+                if (searchNotice(f, i) == null) {
+                    // search like albums, some fonds are inconsistent
+                    if (searchNotice(f, i, 1, true) != null) {
+                        scrapAlbum(f, i, 2);
+                    }
                 }
             }
+        }
+    }
+
+    private void scrapAlbum(Fonds f, int i, int start) {
+        for (int j = start; searchNotice(f, i, j, true) != null; j++) {
+            LOGGER.trace(j);
         }
     }
 
@@ -281,6 +334,8 @@ public class ArchScrap implements AutoCloseable {
                         session.save(n);
                         session.save(f);
                         session.getTransaction().commit();
+                    } else if (!cote.contains("/")) {
+                        missedNotices.add(cote);
                     }
                 } else {
                     LOGGER.warn("No notice found for: {}", cote);
