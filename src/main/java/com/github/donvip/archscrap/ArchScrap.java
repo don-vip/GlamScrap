@@ -148,11 +148,15 @@ public class ArchScrap implements AutoCloseable {
             int expected = f.getExpectedNotices();
             int got = f.getFetchedNotices(session);
             if (got >= expected) {
-                LOGGER.info(String.format("%s: : OK", f.getCote()));
+                LOGGER.info("{}: : OK", f.getCote());
             } else {
-                List<Integer> missing = f.getMissingNotices(session,
-                        ALBUMS.containsKey(f.getCote()) ? ALBUMS.get(f.getCote()).numberOfAlbums : expected);
-                LOGGER.warn(String.format("%s: : KO (expected: %d got: %d missing: %s)", f.getCote(), expected, got, missing.toString()));
+                List<Integer> missing = new ArrayList<>(expected - got);
+                for (int i = 1; i <= expected; i++) {
+                    if (searchNotice(f, i, -1, false) == null) {
+                        missing.add(i);
+                    }
+                }
+                LOGGER.warn("{}: : KO (expected: {}; got: {}; missing: {})", f.getCote(), expected, got, missing);
             }
         }
     }
@@ -226,7 +230,7 @@ public class ArchScrap implements AutoCloseable {
                 Album album = ALBUMS.get(f.getCote());
                 for (int i = 1; i <= album.numberOfAlbums; i++) {
                     if (searchNotice(f, i) != null || album.allowEmptyAlbumNotices) {
-                        for (int j = 1; searchNotice(f, i, j) != null; j++) {
+                        for (int j = 1; searchNotice(f, i, j, true) != null; j++) {
                             LOGGER.trace(j);
                         }
                     }
@@ -241,9 +245,7 @@ public class ArchScrap implements AutoCloseable {
 
     private Fonds searchFonds(String cote) throws IOException {
         // Check to be sure, we don't have it in database
-        session.beginTransaction();
         Fonds f = session.get(Fonds.class, cote);
-        session.getTransaction().commit();
         if (f == null) {
             f = createNewFonds(cote);
             if (f != null) {
@@ -256,19 +258,18 @@ public class ArchScrap implements AutoCloseable {
     }
 
     private Notice searchNotice(Fonds f, int i) {
-        return searchNotice(f, i, -1);
+        return searchNotice(f, i, -1, true);
     }
 
-    private Notice searchNotice(Fonds f, int i, int j) {
+    private Notice searchNotice(Fonds f, int i, int j, boolean fetch) {
         // Check to be sure, we don't have it in database
-        String cote = f.getCote()+i;
+        StringBuilder sb = new StringBuilder(f.getCote()).append(i);
         if (j > -1) {
-            cote += "/" + j;
+            sb.append('/').append(j);
         }
-        session.beginTransaction();
+        String cote = sb.toString();
         Notice n = session.get(Notice.class, cote);
-        session.getTransaction().commit();
-        if (n == null) {
+        if (n == null && fetch) {
             try {
                 Document desc = fetch(String.format("Web_VoirLaNotice/34_01/%s/ILUMP21411", cote.replace("/", "xzx")));
                 if (desc != null) {

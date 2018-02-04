@@ -119,19 +119,6 @@ public class Fonds {
         this.reuseConditions = reuseConditions;
     }
 
-    public List<Integer> getMissingNotices(Session session) {
-        return getMissingNotices(session, expectedNotices);
-    }
-
-    @SuppressWarnings("unchecked")
-    public List<Integer> getMissingNotices(Session session, int max) {
-        // https://stackoverflow.com/a/48446303/2257172
-        return session.createNativeQuery(String.format(
-                "SELECT DISTINCT(id) FROM UNNEST (SEQUENCE_ARRAY((SELECT MIN(id) FROM Notices WHERE Notices.fonds_cote = '%s'), %d, 1)) SEQ(id)" + 
-                "LEFT OUTER JOIN Notices ON Notices.id = SEQ.id WHERE NOT EXISTS(SELECT n.id FROM Notices n WHERE n.id = Notices.id AND n.fonds_cote = '%s')",
-                cote, max, cote)).list();
-    }
-
     public int getFetchedNotices(Session session) {
         @SuppressWarnings("unchecked")
         List<BigInteger> list = session.createNativeQuery(String.format(
