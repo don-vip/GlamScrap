@@ -52,11 +52,22 @@ public class ArchScrap implements AutoCloseable {
     
     private static final String BASE_URL = "http://basededonnees.archives.toulouse.fr/4DCGi/";
 
-    private static final Map<String, Integer> ALBUMS = new HashMap<>();
+    private static class Album {
+        final int numberOfAlbums;
+        final boolean allowEmptyAlbumNotices;
+
+        public Album(int numberOfAlbums, boolean albumNotices) {
+            this.numberOfAlbums = numberOfAlbums;
+            this.allowEmptyAlbumNotices = albumNotices;
+        }
+    }
+
+    private static final Map<String, Album> ALBUMS = new HashMap<>();
     static {
-        ALBUMS.put("16Fi", 81);
-        ALBUMS.put("38Fi", 39);
-        ALBUMS.put("39Fi", 11);
+        ALBUMS.put("16Fi", new Album(81, false));
+        ALBUMS.put("38Fi", new Album(39, false));
+        ALBUMS.put("39Fi", new Album(11, false));
+        ALBUMS.put("1Num", new Album(15, true));
     }
 
     // -- Hibernate
@@ -134,13 +145,14 @@ public class ArchScrap implements AutoCloseable {
 
     private void checkFonds(Fonds f) {
         if (f != null) {
-            List<Integer> missing = f.getMissingNotices(session,
-                    ALBUMS.containsKey(f.getCote()) ? ALBUMS.get(f.getCote()) : f.getExpectedNotices());
-            if (missing.isEmpty()) {
-                LOGGER.info(f.getCote() + ": OK");
+            int expected = f.getExpectedNotices();
+            int got = f.getFetchedNotices(session);
+            if (got >= expected) {
+                LOGGER.info(String.format("%s: : OK", f.getCote()));
             } else {
-                int percent = (int) (100d * (double) missing.size() / (double) f.getExpectedNotices());
-                LOGGER.warn(f.getCote() + ": KO (missing "+percent+"%: " + missing + ")");
+                List<Integer> missing = f.getMissingNotices(session,
+                        ALBUMS.containsKey(f.getCote()) ? ALBUMS.get(f.getCote()).numberOfAlbums : expected);
+                LOGGER.warn(String.format("%s: : KO (expected: %d got: %d missing: %s)", f.getCote(), expected, got, missing.toString()));
             }
         }
     }
@@ -207,26 +219,20 @@ public class ArchScrap implements AutoCloseable {
     }
 
     private void scrapFonds(Fonds f) throws IOException {
-        if (f != null && f.getNotices().size() < f.getExpectedNotices()) {
-            // We have less notices in database than expected
+        // Do we have less notices in database than expected?
+        if (f != null && f.getFetchedNotices(session) < f.getExpectedNotices()) {
+            // Special handling of albums collections
             if (ALBUMS.containsKey(f.getCote())) {
-                // Load all albums notices
-                for (int i = 1; i <= ALBUMS.get(f.getCote()); i++) {
-                    Notice album = searchNotice(f, i);
-                    if (album != null) {
+                Album album = ALBUMS.get(f.getCote());
+                for (int i = 1; i <= album.numberOfAlbums; i++) {
+                    if (searchNotice(f, i) != null || album.allowEmptyAlbumNotices) {
                         for (int j = 1; searchNotice(f, i, j) != null; j++) {
                             LOGGER.trace(j);
                         }
                     }
                 }
             } else {
-                // 1. Try to fetch missing notices
-                for (int i : f.getMissingNotices(session)) {
-                    searchNotice(f, i);
-                }
-                // 2. Try to search new ones
-                int last = f.getNotices().isEmpty() ? 0 : f.getNotices().get(f.getNotices().size() - 1).getId();  
-                for (int i = last + 1; i <= f.getExpectedNotices(); i++) {
+                for (int i = 1; i <= f.getExpectedNotices(); i++) {
                     searchNotice(f, i);
                 }
             }

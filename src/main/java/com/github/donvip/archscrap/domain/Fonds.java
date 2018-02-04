@@ -16,6 +16,7 @@
  */
 package com.github.donvip.archscrap.domain;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -129,6 +130,13 @@ public class Fonds {
                 "SELECT DISTINCT(id) FROM UNNEST (SEQUENCE_ARRAY((SELECT MIN(id) FROM Notices WHERE Notices.fonds_cote = '%s'), %d, 1)) SEQ(id)" + 
                 "LEFT OUTER JOIN Notices ON Notices.id = SEQ.id WHERE NOT EXISTS(SELECT n.id FROM Notices n WHERE n.id = Notices.id AND n.fonds_cote = '%s')",
                 cote, max, cote)).list();
+    }
+
+    public int getFetchedNotices(Session session) {
+        @SuppressWarnings("unchecked")
+        List<BigInteger> list = session.createNativeQuery(String.format(
+                "SELECT COUNT(*) FROM Notices WHERE Notices.fonds_cote = '%s'", cote)).list();
+        return list.isEmpty() ? 0 : list.get(0).intValue();
     }
 
     @Override
