@@ -20,14 +20,14 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Lob;
-import javax.persistence.OneToMany;
-import javax.persistence.OrderBy;
-
 import org.hibernate.Session;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
 
 @Entity
 public class Fonds {
@@ -120,9 +120,8 @@ public class Fonds {
     }
 
     public int getFetchedNotices(Session session) {
-        @SuppressWarnings("unchecked")
         List<BigInteger> list = session.createNativeQuery(String.format(
-                "SELECT COUNT(*) FROM Notices WHERE Notices.fonds_cote = '%s'", cote)).list();
+                "SELECT COUNT(*) FROM Notices WHERE Notices.fonds_cote = '%s'", cote), BigInteger.class).list();
         return list.isEmpty() ? 0 : list.get(0).intValue();
     }
 

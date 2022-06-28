@@ -50,7 +50,7 @@ import com.github.donvip.archscrap.domain.Notice;
 public class ArchScrap implements AutoCloseable {
 
     private static final Logger LOGGER = LogManager.getLogger();
-    
+
     private static final String BASE_URL = "http://basededonnees.archives.toulouse.fr/4DCGi/";
 
     private static class Album {
@@ -93,7 +93,7 @@ public class ArchScrap implements AutoCloseable {
         ALBUMS.put("39Fi", new Album(11, false));
         ALBUMS.put("1Num", new Album(15, true));
     }
-    
+
     private static final Map<String, Range> ALLOWED_GAPS = new HashMap<>();
     static {
         ALLOWED_GAPS.put("24Fi", new Range(215, 99));
@@ -153,7 +153,7 @@ public class ArchScrap implements AutoCloseable {
     private void launchGui(String[] args) {
         try {
             DatabaseManagerSwing.main(new String[] {
-                    "--url", ((SessionImpl) session).connection().getMetaData().getURL()});
+                    "--url", ((SessionImpl) session).getJdbcConnectionAccess().obtainConnection().getMetaData().getURL()});
         } catch (HibernateException | SQLException e) {
             LOGGER.catching(e);
         }
@@ -303,7 +303,7 @@ public class ArchScrap implements AutoCloseable {
             f = createNewFonds(cote);
             if (f != null) {
                 session.beginTransaction();
-                session.save(f);
+                session.persist(f);
                 session.getTransaction().commit();
             }
         }
@@ -331,8 +331,8 @@ public class ArchScrap implements AutoCloseable {
                         session.beginTransaction();
                         f.getNotices().add(n);
                         n.setFonds(f);
-                        session.save(n);
-                        session.save(f);
+                        session.persist(n);
+                        session.persist(f);
                         session.getTransaction().commit();
                     } else if (!cote.contains("/")) {
                         missedNotices.add(cote);
@@ -359,7 +359,7 @@ public class ArchScrap implements AutoCloseable {
     }
 
     private static Document fetch(String doc) throws IOException {
-        LOGGER.info("Fetching {}", BASE_URL + doc);
+        LOGGER.info("Fetching {}{}", BASE_URL, doc);
         return Jsoup.connect(BASE_URL + doc).get();
     }
 }
