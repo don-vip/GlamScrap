@@ -49,14 +49,15 @@ import de.unihd.dbs.uima.types.heideltime.Timex3;
 public class Parser {
 
     private static final Logger LOGGER = LogManager.getLogger();
-    
+
     static {
         java.util.logging.Logger.getLogger("HeidelTimeStandalone").setLevel(java.util.logging.Level.WARNING);
     }
 
     // -- HeidelTime
     private static final HeidelTimeStandalone timeNarrative = new HeidelTimeStandalone(
-            Language.FRENCH, DocumentType.NARRATIVES, OutputType.XMI, "./target/classes/config.windows.props");
+            Language.FRENCH, DocumentType.NARRATIVES, OutputType.XMI,
+            System.getenv("CI") != null ? "./target/classes/config.github.props" : "./target/classes/config.windows.props");
 
     public static Fonds parseFonds(Document desc, String cote) {
         Element fondsDesc = desc.select("#notice_sp").first();
@@ -226,7 +227,7 @@ public class Parser {
                     case "SET":
                         continue;
                     default:
-                        throw new UnsupportedOperationException(t.getTimexType()+" / "+t.getTimexValue()); 
+                        throw new UnsupportedOperationException(t.getTimexType()+" / "+t.getTimexValue());
                     }
                 }
                 return null;
