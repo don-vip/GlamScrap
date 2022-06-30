@@ -16,6 +16,7 @@
  */
 package com.github.donvip.archscrap.domain;
 
+import java.net.URL;
 import java.time.LocalDate;
 import java.time.Year;
 import java.time.YearMonth;
@@ -73,6 +74,7 @@ public class Notice {
     private List<String> indexation = new ArrayList<>();
     private String historicalPeriod;
     private String filename;
+    private URL downloadUrl;
 
     public Notice() {
         // Default constructor
@@ -289,6 +291,14 @@ public class Notice {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    public URL getDownloadUrl() {
+        return downloadUrl;
+    }
+
+    public void setDownloadUrl(URL downloadUrl) {
+        this.downloadUrl = downloadUrl;
     }
 
     @Override

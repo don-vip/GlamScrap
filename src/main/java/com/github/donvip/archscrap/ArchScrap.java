@@ -16,7 +16,14 @@
  */
 package com.github.donvip.archscrap;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.channels.Channels;
+import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
@@ -82,12 +89,14 @@ public abstract class ArchScrap implements AutoCloseable {
     private final StandardServiceRegistry registry;
     private final SessionFactory sessionFactory;
     protected final Session session;
+    protected final String city;
 
     protected final Set<String> missedNotices = new TreeSet<>();
 
     protected ArchScrap(String city) {
         LOGGER.debug("Initializing Hibernate...");
         System.setProperty("city", city);
+        this.city = city;
         registry = new StandardServiceRegistryBuilder()
                     .configure() // configures settings from hibernate.cfg.xml
                     .build();
@@ -111,7 +120,7 @@ public abstract class ArchScrap implements AutoCloseable {
     }
 
     public static void usage() {
-        LOGGER.info("Usage: ArchScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>] | wikicode [<fonds>]| gui");
+        LOGGER.info("Usage: ArchScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | wikicode [<fonds>]| gui");
     }
 
     public static void main(String[] args) {
@@ -176,7 +185,16 @@ public abstract class ArchScrap implements AutoCloseable {
     }
 
     public final void doDownload(String[] args) throws IOException {
-        // TODO download files
+        if (args.length <= 2) {
+            // download all fonds
+            for (Fonds f : fetchAllFonds()) {
+                downloadFonds(f);
+            }
+        } else {
+            for (String cote : args[2].split(",")) {
+                downloadFonds(searchFonds(cote));
+            }
+        }
     }
 
     public final void doWikicode(String[] args) throws IOException {
@@ -192,6 +210,30 @@ public abstract class ArchScrap implements AutoCloseable {
             } else {
                 List<Range> missing = searchNotices(f, expected);
                 LOGGER.warn("{}: : KO (expected: {}; got: {}; missing: {})", f.getCote(), expected, got, missing);
+            }
+        }
+    }
+
+    private void downloadFonds(Fonds f) throws IOException {
+        if (f != null) {
+            Path dir = Files.createDirectories(Paths.get("output", city, "fonds", f.getCote()));
+            for (Notice n : f.getNotices()) {
+                downloadImage(n, dir);
+            }
+        }
+    }
+
+    private void downloadImage(Notice n, Path dir) throws IOException {
+        if (n.getFilename() == null || n.getDownloadUrl() == null) {
+            LOGGER.warn("No filename or download URL for {}", n);
+        } else {
+            File file = dir.resolve(n.getFilename()).toFile();
+            if (!file.exists()) {
+                LOGGER.info("Downloading {}", n.getDownloadUrl());
+                try (ReadableByteChannel readableByteChannel = Channels.newChannel(n.getDownloadUrl().openStream());
+                        FileOutputStream fileOutputStream = new FileOutputStream(file)) {
+                    fileOutputStream.getChannel().transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
+                }
             }
         }
     }

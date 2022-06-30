@@ -22,9 +22,6 @@ import com.github.donvip.archscrap.domain.Fonds;
 import com.github.donvip.archscrap.domain.Notice;
 
 /**
- * TODO download images
- * vignette : https://archives.paris.fr/_depot_ad75/_depot_arko/basesdoc/1/116617/vign_AD075PH_FORT008.JPG
- * HD sans watermark : https://archives.paris.fr/_depot_ad75/_depot_arko/basesdoc/1/116617/ori_AD075PH_FORT008.JPG
  * https://archives.paris.fr/a/234/catalogues-des-documents-figures/
  */
 public class ParisArchScrap extends ArchScrap {
