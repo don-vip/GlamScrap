@@ -35,9 +35,13 @@ import jakarta.persistence.Table;
 @Table(name = "Notices")
 public class Notice {
 
+    private static final Pattern PATTERN_1 = Pattern.compile("(\\d+[A-Z][a-z]+) ?(\\d+)");
+    private static final Pattern PATTERN_2 = Pattern.compile("([A-Z]+\\d+) (\\d+/\\d+)");
+
     @Id
     private String cote;
-    private int id;
+    @Column(length = 16)
+    private String id;
     @Column(length = 288)
     private String title;
     @Column(length = 6400)
@@ -68,6 +72,7 @@ public class Notice {
     @ElementCollection
     private List<String> indexation = new ArrayList<>();
     private String historicalPeriod;
+    private String filename;
 
     public Notice() {
         // Default constructor
@@ -75,9 +80,14 @@ public class Notice {
 
     public Notice(String cote) {
         setCote(cote);
-        Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+)(\\d+)").matcher(cote);
+        Matcher m = PATTERN_1.matcher(cote);
         if (m.matches()) {
-            setId(Integer.valueOf(m.group(2)));
+            setId(m.group(2));
+        } else {
+            m = PATTERN_2.matcher(cote);
+            if (m.matches()) {
+                setId(m.group(2));
+            }
         }
     }
 
@@ -89,11 +99,11 @@ public class Notice {
         this.cote = cote;
     }
 
-    public int getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -271,6 +281,14 @@ public class Notice {
 
     public void setHistoricalPeriod(String historicalPeriod) {
         this.historicalPeriod = historicalPeriod;
+    }
+
+    public String getFilename() {
+        return filename;
+    }
+
+    public void setFilename(String filename) {
+        this.filename = filename;
     }
 
     @Override

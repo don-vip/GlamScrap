@@ -18,16 +18,10 @@ package com.github.donvip.archscrap;
 
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,19 +35,17 @@ import org.hibernate.internal.SessionImpl;
 import org.hsqldb.util.DatabaseManagerSwing;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
 
+import com.github.donvip.archscrap.archives.paris.ParisArchScrap;
+import com.github.donvip.archscrap.archives.toulouse.ToulouseArchScrap;
 import com.github.donvip.archscrap.domain.Fonds;
 import com.github.donvip.archscrap.domain.Notice;
 
-public class ArchScrap implements AutoCloseable {
+public abstract class ArchScrap implements AutoCloseable {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
-    private static final String BASE_URL = "http://basededonnees.archives.toulouse.fr/4DCGi/";
-
-    private static class Album {
+    protected static final class Album {
         final int numberOfAlbums;
         final boolean allowEmptyAlbumNotices;
 
@@ -63,7 +55,7 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
-    private static class Range {
+    protected static final class Range {
         final int min;
         int max;
 
@@ -86,28 +78,16 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
-    private static final Map<String, Album> ALBUMS = new HashMap<>();
-    static {
-        ALBUMS.put("16Fi", new Album(81, false));
-        ALBUMS.put("38Fi", new Album(39, false));
-        ALBUMS.put("39Fi", new Album(11, false));
-        ALBUMS.put("1Num", new Album(15, true));
-    }
-
-    private static final Map<String, Range> ALLOWED_GAPS = new HashMap<>();
-    static {
-        ALLOWED_GAPS.put("24Fi", new Range(215, 99));
-    }
-
     // -- Hibernate
     private final StandardServiceRegistry registry;
     private final SessionFactory sessionFactory;
-    private final Session session;
+    protected final Session session;
 
-    private final Set<String> missedNotices = new TreeSet<>();
+    protected final Set<String> missedNotices = new TreeSet<>();
 
-    private ArchScrap() {
+    protected ArchScrap(String city) {
         LOGGER.debug("Initializing Hibernate...");
+        System.setProperty("city", city);
         registry = new StandardServiceRegistryBuilder()
                     .configure() // configures settings from hibernate.cfg.xml
                     .build();
@@ -115,8 +95,14 @@ public class ArchScrap implements AutoCloseable {
         session = sessionFactory.openSession();
     }
 
+    protected abstract Album getAlbum(String cote);
+
+    protected abstract Range getAllowedGap(String cote);
+
+    protected abstract String getBaseUrl();
+
     @Override
-    public void close() throws IOException {
+    public final void close() throws IOException {
         try {
             session.close();
         } finally {
@@ -124,25 +110,34 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
+    public static void usage() {
+        LOGGER.info("Usage: ArchScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>] | wikicode [<fonds>]| gui");
+    }
+
     public static void main(String[] args) {
-        if (args.length < 1) {
-            LOGGER.info("Usage: ArchScrap scrap [<fonds>[,<fonds>]*] | fetch [<notice>]");
+        if (args.length < 2) {
+        usage();
             return;
         }
-        try (ArchScrap app = new ArchScrap()) {
-            switch (args[0]) {
+        try (ArchScrap app = buildApp(args[0])) {
+            switch (args[1]) {
                 case "scrap":
                     app.doScrap(args);
-                    break;
-                case "fetch":
-                    app.doFetch(args);
                     break;
                 case "check":
                     app.doCheck(args);
                     break;
-                case "gui":
-                    app.launchGui(args);
+                case "download":
+                    app.doDownload(args);
                     break;
+                case "wikicode":
+                    app.doWikicode(args);
+                    break;
+                case "gui":
+                    app.launchGui();
+                    break;
+                default:
+                    LOGGER.info("Unsupported operation: {}", args[1]);
             }
         } catch (IOException e) {
             LOGGER.catching(e);
@@ -150,7 +145,15 @@ public class ArchScrap implements AutoCloseable {
         LOGGER.info("Bye!");
     }
 
-    private void launchGui(String[] args) {
+    private static ArchScrap buildApp(String city) {
+        switch (city) {
+            case "paris": return new ParisArchScrap();
+            case "toulouse": return new ToulouseArchScrap();
+            default: throw new IllegalArgumentException("Unsupported city: " + city);
+        }
+    }
+
+    private void launchGui() {
         try {
             DatabaseManagerSwing.main(new String[] {
                     "--url", ((SessionImpl) session).getJdbcConnectionAccess().obtainConnection().getMetaData().getURL()});
@@ -159,17 +162,25 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
-    public void doCheck(String[] args) throws IOException {
-        if (args.length <= 1) {
+    public final void doCheck(String[] args) throws IOException {
+        if (args.length <= 2) {
             // Check all fonds
             for (Fonds f : fetchAllFonds()) {
                 checkFonds(f);
             }
         } else {
-            for (String cote : args[1].split(",")) {
+            for (String cote : args[2].split(",")) {
                 checkFonds(searchFonds(cote));
             }
         }
+    }
+
+    public final void doDownload(String[] args) throws IOException {
+        // TODO download files
+    }
+
+    public final void doWikicode(String[] args) throws IOException {
+        // TODO download files
     }
 
     private void checkFonds(Fonds f) {
@@ -179,30 +190,35 @@ public class ArchScrap implements AutoCloseable {
             if (got >= expected) {
                 LOGGER.info("{}: : OK", f.getCote());
             } else {
-                LinkedList<Range> missing = new LinkedList<>();
-                for (int i = 1; i <= expected; i++) {
-                    if (searchNotice(f, i, -1, false) == null && searchNotice(f, i, 1, false) == null) {
-                        if (!missing.isEmpty() && missing.getLast().max == i-1) {
-                            missing.getLast().max = i;
-                        } else {
-                            missing.add(new Range(i));
-                        }
-                    }
-                }
+                List<Range> missing = searchNotices(f, expected);
                 LOGGER.warn("{}: : KO (expected: {}; got: {}; missing: {})", f.getCote(), expected, got, missing);
             }
         }
     }
 
-    public void doScrap(String[] args) throws IOException {
+    private List<Range> searchNotices(Fonds f, int expected) {
+        LinkedList<Range> missing = new LinkedList<>();
+        for (int i = 1; i <= expected; i++) {
+            if (searchNotice(f, i, -1, false) == null && searchNotice(f, i, 1, false) == null) {
+                if (!missing.isEmpty() && missing.getLast().max == i-1) {
+                    missing.getLast().max = i;
+                } else {
+                    missing.add(new Range(i));
+                }
+            }
+        }
+        return missing;
+    }
+
+    public final void doScrap(String[] args) throws IOException {
         missedNotices.clear();
-        if (args.length <= 1) {
+        if (args.length <= 2) {
             // Scrap all fonds
             for (Fonds f : fetchAllFonds()) {
                 scrapFonds(f);
             }
         } else {
-            for (String cote : args[1].split(",")) {
+            for (String cote : args[2].split(",")) {
                 scrapFonds(cote);
             }
         }
@@ -211,81 +227,47 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
-    private List<Fonds> fetchAllFonds() throws IOException {
-        LOGGER.info("Fetching all image fonds from archives website...");
-        Element plan = fetch("web_fondsmcadre/34/ILUMP458").select("#planclassement").first();
-        if (plan != null) {
-            List<Fonds> allFonds = new ArrayList<>();
-            Elements links = plan.select("p > a");
-            LOGGER.info("Found {} fonds", links.size());
-            for (Element e : links) {
-                allFonds.add(extractFonds(e));
-            }
-            return allFonds;
-        } else {
-            LOGGER.error("Unable to fetch image fonds from archives website");
-            return Collections.emptyList();
-        }
-    }
-
-    public void doFetch(String[] args) throws IOException {
-        String cote = args[1];
-        Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+)(\\d+)").matcher(cote);
-        if (m.matches()) {
-            LOGGER.info(searchNotice(
-                    searchFonds(m.group(1)),
-                    Integer.valueOf(m.group(2))));
-        } else {
-            LOGGER.error("Unrecognized cote: {}", cote);
-        }
-    }
-
-    private Fonds extractFonds(Element fonds) throws IOException {
-        String fondsText = fonds.text();
-        Matcher m = Pattern.compile("(\\d+[A-Z][a-z]+) - (.+)").matcher(fondsText);
-        if (m.matches()) {
-            return searchFonds(m.group(1));
-        } else {
-            LOGGER.warn("Unable to parse fonds {}", fondsText);
-            return null;
-        }
-    }
+    protected abstract List<Fonds> fetchAllFonds() throws IOException;
 
     private void scrapFonds(String cote) throws IOException {
         scrapFonds(searchFonds(cote));
     }
 
     private void scrapFonds(Fonds f) throws IOException {
-        // Do we have less notices in database than expected?
-        int expected = f.getExpectedNotices();
-        if (f != null && f.getFetchedNotices(session) < expected) {
-            // Special handling of albums collections
-            if (ALBUMS.containsKey(f.getCote())) {
-                Album album = ALBUMS.get(f.getCote());
-                for (int i = 1; i <= album.numberOfAlbums; i++) {
-                    if (searchNotice(f, i) != null || album.allowEmptyAlbumNotices) {
-                        scrapAlbum(f, i, 1);
-                    }
+        if (f != null) {
+            // Do we have less notices in database than expected?
+            int expected = f.getExpectedNotices();
+            if (f.getFetchedNotices(session) < expected) {
+                // Special handling of albums collections
+                Album album = getAlbum(f.getCote());
+                if (album != null) {
+                    scrapAlbums(f, album);
+                } else {
+                    // base search
+                    scrapFondsNotices(f, expected, 1, expected);
+                    // extend search by number of missing notices
+                    scrapFondsNotices(f, expected, expected + 1, expected + missedNotices.size());
+                    // post scrapping
+                    postScrapFonds(f);
                 }
-            } else {
-                // base search
-                scrapFondsNotices(f, expected, 1, expected);
-                // extend search by number of missing notices
-                scrapFondsNotices(f, expected, expected + 1, expected + missedNotices.size());
+            }
+        }
+    }
+
+    private void scrapAlbums(Fonds f, Album album) {
+        for (int i = 1; i <= album.numberOfAlbums; i++) {
+            if (searchNotice(f, i) != null || album.allowEmptyAlbumNotices) {
+                scrapAlbum(f, i, 1);
             }
         }
     }
 
     private void scrapFondsNotices(Fonds f, int expected, int start, int end) {
-        Range allowedGap = ALLOWED_GAPS.get(f.getCote());
+        Range allowedGap = getAllowedGap(f.getCote());
         for (int i = start; i <= end && f.getFetchedNotices(session) < expected; i++) {
-            if (allowedGap == null || !allowedGap.contains(i)) {
-                if (searchNotice(f, i) == null) {
-                    // search like albums, some fonds are inconsistent
-                    if (searchNotice(f, i, 1, true) != null) {
-                        scrapAlbum(f, i, 2);
-                    }
-                }
+            if ((allowedGap == null || !allowedGap.contains(i)) && (searchNotice(f, i) == null && searchNotice(f, i, 1, true) != null)) {
+                // search like albums, some fonds are inconsistent
+                scrapAlbum(f, i, 2);
             }
         }
     }
@@ -296,70 +278,39 @@ public class ArchScrap implements AutoCloseable {
         }
     }
 
-    private Fonds searchFonds(String cote) throws IOException {
+    protected abstract void postScrapFonds(Fonds f) throws IOException;
+
+    protected final Fonds searchFonds(String cote) throws IOException {
         // Check to be sure, we don't have it in database
         Fonds f = session.get(Fonds.class, cote);
         if (f == null) {
+            LOGGER.info("New fonds! {}", cote);
             f = createNewFonds(cote);
             if (f != null) {
-                session.beginTransaction();
-                session.persist(f);
-                session.getTransaction().commit();
+                persist(f);
+            } else {
+                LOGGER.warn("Unable to fetch fonds description for {}", cote);
             }
         }
         return f;
     }
 
-    private Notice searchNotice(Fonds f, int i) {
+    protected final void persist(Object o) {
+        session.beginTransaction();
+        session.persist(o);
+        session.getTransaction().commit();
+    }
+
+    protected final Notice searchNotice(Fonds f, int i) {
         return searchNotice(f, i, -1, true);
     }
 
-    private Notice searchNotice(Fonds f, int i, int j, boolean fetch) {
-        // Check to be sure, we don't have it in database
-        StringBuilder sb = new StringBuilder(f.getCote()).append(i);
-        if (j > -1) {
-            sb.append('/').append(j);
-        }
-        String cote = sb.toString();
-        Notice n = session.get(Notice.class, cote);
-        if (n == null && fetch) {
-            try {
-                Document desc = fetch(String.format("Web_VoirLaNotice/34_01/%s/ILUMP21411", cote.replace("/", "xzx")));
-                if (desc != null) {
-                    n = Parser.parseNotice(desc, cote);
-                    if (n != null) {
-                        session.beginTransaction();
-                        f.getNotices().add(n);
-                        n.setFonds(f);
-                        session.persist(n);
-                        session.persist(f);
-                        session.getTransaction().commit();
-                    } else if (!cote.contains("/")) {
-                        missedNotices.add(cote);
-                    }
-                } else {
-                    LOGGER.warn("No notice found for: {}", cote);
-                }
-            } catch (IOException e) {
-                LOGGER.catching(e);
-            }
-        }
-        return n;
-    }
+    protected abstract Notice searchNotice(Fonds f, int i, int j, boolean fetch);
 
-    private Fonds createNewFonds(String cote) throws IOException {
-        LOGGER.info("New fonds! {}", cote);
-        Document doc = fetch(String.format("Web_FondsCClass%s/ILUMP31929", cote));
-        if (doc != null) {
-            return Parser.parseFonds(doc, cote);
-        } else {
-            LOGGER.warn("Unable to fetch fonds description for {}", cote);
-            return null;
-        }
-    }
+    protected abstract Fonds createNewFonds(String cote) throws IOException;
 
-    private static Document fetch(String doc) throws IOException {
-        LOGGER.info("Fetching {}{}", BASE_URL, doc);
-        return Jsoup.connect(BASE_URL + doc).get();
+    protected final Document fetch(String doc) throws IOException {
+        LOGGER.info("Fetching {}{}", getBaseUrl(), doc);
+        return Jsoup.connect(getBaseUrl() + doc).get();
     }
 }

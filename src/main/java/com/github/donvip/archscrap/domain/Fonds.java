@@ -35,6 +35,7 @@ public class Fonds {
     private String cote;
     private String title;
     private int expectedNotices;
+    private List<String> expectedNoticeCotes;
     @Lob
     private String note;
     @Lob
@@ -85,6 +86,14 @@ public class Fonds {
 
     public void setExpectedNotices(int expectedNotices) {
         this.expectedNotices = expectedNotices;
+    }
+
+    public List<String> getExpectedNoticeCotes() {
+        return expectedNoticeCotes;
+    }
+
+    public void setExpectedNoticeCotes(List<String> expectedNoticeCotes) {
+        this.expectedNoticeCotes = expectedNoticeCotes;
     }
 
     public String getNote() {
