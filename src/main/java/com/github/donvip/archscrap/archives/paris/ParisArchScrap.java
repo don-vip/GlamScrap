@@ -158,7 +158,7 @@ public class ParisArchScrap extends ArchScrap {
                                        .orElseThrow(() -> new IllegalStateException("No notice found for cote " + cote)))
                                .forEach(n -> filler.accept(n, v));
             Document results = fetch(String.format("tableau/?&crit1=%d&v_%d_1=%s&v_%d_2=%d", crit, crit, e.getValue(), crit, e.getKey()));
-            String decodedValue = URLDecoder.decode(e.getValue(), StandardCharsets.UTF_8);
+            String decodedValue = URLDecoder.decode(e.getValue(), StandardCharsets.ISO_8859_1);
             int n = extractNumberOfResults(results);
             parser.accept(results, decodedValue);
             for (int i = PAGE; i < n; i += PAGE) {
