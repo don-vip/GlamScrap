@@ -74,6 +74,7 @@ public class Notice {
     private List<String> indexation = new ArrayList<>();
     private String historicalPeriod;
     private String filename;
+    private URL url;
     private URL downloadUrl;
 
     public Notice() {
@@ -291,6 +292,14 @@ public class Notice {
 
     public void setFilename(String filename) {
         this.filename = filename;
+    }
+
+    public URL getUrl() {
+        return url;
+    }
+
+    public void setUrl(URL url) {
+        this.url = url;
     }
 
     public URL getDownloadUrl() {

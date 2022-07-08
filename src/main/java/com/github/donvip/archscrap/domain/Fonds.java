@@ -47,6 +47,7 @@ public class Fonds {
     @OrderBy("id")
     @OneToMany(mappedBy = "fonds")
     private List<Notice> notices = new ArrayList<>();
+    private String template;
 
     public Fonds() {
         // Default constructor
@@ -126,6 +127,14 @@ public class Fonds {
 
     public void setReuseConditions(String reuseConditions) {
         this.reuseConditions = reuseConditions;
+    }
+
+    public String getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(String template) {
+        this.template = template;
     }
 
     public int getFetchedNotices(Session session) {

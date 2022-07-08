@@ -27,6 +27,7 @@ import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -47,6 +48,9 @@ import com.github.donvip.archscrap.archives.paris.ParisArchScrap;
 import com.github.donvip.archscrap.archives.toulouse.ToulouseArchScrap;
 import com.github.donvip.archscrap.domain.Fonds;
 import com.github.donvip.archscrap.domain.Notice;
+import com.github.donvip.archscrap.uploadtools.Pattypan;
+import com.github.donvip.archscrap.uploadtools.UploadTool;
+import com.github.donvip.archscrap.wikidata.Author;
 
 public abstract class ArchScrap implements AutoCloseable {
 
@@ -120,7 +124,7 @@ public abstract class ArchScrap implements AutoCloseable {
     }
 
     public static void usage() {
-        LOGGER.info("Usage: ArchScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | wikicode [<fonds>]| gui");
+        LOGGER.info("Usage: ArchScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | pattypan [<fonds>] | gui");
     }
 
     public static void main(String[] args) {
@@ -139,8 +143,8 @@ public abstract class ArchScrap implements AutoCloseable {
                 case "download":
                     app.doDownload(args);
                     break;
-                case "wikicode":
-                    app.doWikicode(args);
+                case "pattypan":
+                    app.doUploadTool(args, new Pattypan());
                     break;
                 case "gui":
                     app.launchGui();
@@ -153,6 +157,21 @@ public abstract class ArchScrap implements AutoCloseable {
         }
         LOGGER.info("Bye!");
     }
+
+    private void doUploadTool(String[] args, UploadTool tool) throws IOException {
+        if (args.length <= 2) {
+            // Process all fonds
+            for (Fonds f : fetchAllFonds()) {
+                tool.writeUploadFile(f, this);
+            }
+        } else {
+            for (String cote : args[2].split(",")) {
+                tool.writeUploadFile(searchFonds(cote), this);
+            }
+        }
+    }
+
+    public abstract String getInstitution();
 
     private static ArchScrap buildApp(String city) {
         switch (city) {
@@ -197,10 +216,6 @@ public abstract class ArchScrap implements AutoCloseable {
         }
     }
 
-    public final void doWikicode(String[] args) throws IOException {
-        // TODO download files
-    }
-
     private void checkFonds(Fonds f) {
         if (f != null) {
             int expected = f.getExpectedNotices();
@@ -216,11 +231,15 @@ public abstract class ArchScrap implements AutoCloseable {
 
     private void downloadFonds(Fonds f) throws IOException {
         if (f != null) {
-            Path dir = Files.createDirectories(Paths.get("output", city, "fonds", f.getCote()));
+            Path dir = Files.createDirectories(getDownloadDir(f));
             for (Notice n : f.getNotices()) {
                 downloadImage(n, dir);
             }
         }
+    }
+
+    public Path getDownloadDir(Fonds f) {
+        return Paths.get("output", city, "fonds", f.getCote());
     }
 
     private void downloadImage(Notice n, Path dir) throws IOException {
@@ -355,4 +374,10 @@ public abstract class ArchScrap implements AutoCloseable {
         LOGGER.info("Fetching {}{}", getBaseUrl(), doc);
         return Jsoup.connect(getBaseUrl() + doc).get();
     }
+
+    public abstract String getOtherFields(Notice n);
+
+    public abstract List<String> getCategories(Notice n);
+
+    public abstract Map<String, Author> getPredefinedAuthors();
 }

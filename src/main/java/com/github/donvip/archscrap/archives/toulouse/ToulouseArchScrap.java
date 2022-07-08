@@ -18,6 +18,7 @@ import org.jsoup.select.Elements;
 import com.github.donvip.archscrap.ArchScrap;
 import com.github.donvip.archscrap.domain.Fonds;
 import com.github.donvip.archscrap.domain.Notice;
+import com.github.donvip.archscrap.wikidata.Author;
 
 public class ToulouseArchScrap extends ArchScrap {
 
@@ -40,6 +41,11 @@ public class ToulouseArchScrap extends ArchScrap {
 
     public ToulouseArchScrap() {
         super("toulouse");
+    }
+
+    @Override
+    public String getInstitution() {
+        return "Archives municipales de Toulouse";
     }
 
     @Override
@@ -133,5 +139,20 @@ public class ToulouseArchScrap extends ArchScrap {
     @Override
     protected void postScrapFonds(Fonds f) {
         // Do nothing
+    }
+
+    @Override
+    public String getOtherFields(Notice n) {
+        return "";
+    }
+
+    @Override
+    public List<String> getCategories(Notice n) {
+        return List.of();
+    }
+
+    @Override
+    public Map<String, Author> getPredefinedAuthors() {
+        return Map.of();
     }
 }
