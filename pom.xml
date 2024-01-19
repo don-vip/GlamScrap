@@ -3,15 +3,15 @@
 
 	<groupId>com.github.donvip</groupId>
 	<artifactId>archscrap</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.2.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
 	<name>archscrap</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>17</maven.compiler.source>
-		<maven.compiler.target>17</maven.compiler.target>
+		<maven.compiler.source>21</maven.compiler.source>
+		<maven.compiler.target>21</maven.compiler.target>
 		<sonar.projectKey>don-vip_ArchScrap</sonar.projectKey>
 		<sonar.organization>don-vip</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -22,7 +22,7 @@
 			<dependency>
 				<groupId>org.eclipse.rdf4j</groupId>
 				<artifactId>rdf4j-bom</artifactId>
-				<version>4.0.3</version>
+				<version>4.3.8</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -33,28 +33,28 @@
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-api</artifactId>
-			<version>2.18.0</version>
+			<version>2.22.1</version><!--$NO-MVN-MAN-VER$-->
 		</dependency>
 		<dependency>
 			<groupId>org.apache.logging.log4j</groupId>
 			<artifactId>log4j-core</artifactId>
-			<version>2.18.0</version>
+			<version>2.22.1</version><!--$NO-MVN-MAN-VER$-->
 		</dependency>
 		<dependency>
 		    <groupId>org.fusesource.jansi</groupId>
 		    <artifactId>jansi</artifactId>
-		    <version>2.4.0</version>
+		    <version>2.4.1</version>
 		    <scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
-			<version>1.15.1</version>
+			<version>1.17.2</version>
 		</dependency>
 		<dependency>
 			<groupId>org.hsqldb</groupId>
 			<artifactId>hsqldb</artifactId>
-			<version>2.6.1</version>
+			<version>2.7.2</version>
 		</dependency>
 		<dependency>
 			<groupId>jakarta.persistence</groupId>
@@ -64,7 +64,7 @@
 		<dependency>
 			<groupId>org.hibernate.orm</groupId>
 			<artifactId>hibernate-core</artifactId>
-			<version>6.1.0.Final</version>
+			<version>6.4.2.Final</version>
 		</dependency>
 		<dependency>
 			<groupId>com.github.heideltime</groupId>
@@ -74,12 +74,12 @@
 		<dependency>
 			<groupId>org.apache.uima</groupId>
 			<artifactId>uimaj-core</artifactId>
-			<version>2.11.0</version>
+			<version>3.5.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>5.2.2</version>
+			<version>5.2.5</version>
 		</dependency>
 		<dependency>
 			<groupId>org.eclipse.rdf4j</groupId>

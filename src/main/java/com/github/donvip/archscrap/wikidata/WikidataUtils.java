@@ -12,7 +12,6 @@ import java.util.regex.Pattern;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.eclipse.rdf4j.common.iteration.Iterations;
 import org.eclipse.rdf4j.query.Binding;
 import org.eclipse.rdf4j.query.BindingSet;
 import org.eclipse.rdf4j.query.QueryLanguage;
@@ -57,7 +56,8 @@ public final class WikidataUtils {
                         throw new IllegalArgumentException("Unexpected value: " + occupationQid);
                     };
                     if (query != null) {
-                        List<BindingSet> results = Iterations.asList(sparqlConnection.prepareTupleQuery(QueryLanguage.SPARQL, query).evaluate());
+                        List<BindingSet> results = sparqlConnection.prepareTupleQuery(QueryLanguage.SPARQL, query)
+                                .evaluate().stream().toList();
                         if (results.size() != 1) {
                             LOGGER.info("Not exactly 1 author when looking for {} in Wikidata: {}", author, results);
                         } else {
@@ -183,7 +183,7 @@ public final class WikidataUtils {
                        wdt:P1705 ?noms;
                     }
                 """.replace("$natures", natures).replace("$textualValue", textualValue));
-            List<BindingSet> results = Iterations.asList(tupleQuery.evaluate());
+            List<BindingSet> results = tupleQuery.evaluate().stream().toList();
             if (results.isEmpty()) {
                 LOGGER.error("No name/surname found when looking for {} {} in Wikidata: {}", natures, textualValue, results);
                 return Collections.emptyList();
