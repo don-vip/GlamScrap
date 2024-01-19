@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.wikidata;
+package com.github.donvip.glamscrap.wikidata;
 
 import java.time.LocalDate;
 

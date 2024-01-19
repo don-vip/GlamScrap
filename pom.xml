@@ -2,17 +2,17 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>com.github.donvip</groupId>
-	<artifactId>archscrap</artifactId>
+	<artifactId>glamscrap</artifactId>
 	<version>0.2.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>archscrap</name>
+	<name>glamscrap</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven.compiler.source>21</maven.compiler.source>
 		<maven.compiler.target>21</maven.compiler.target>
-		<sonar.projectKey>don-vip_ArchScrap</sonar.projectKey>
+		<sonar.projectKey>don-vip_GlamScrap</sonar.projectKey>
 		<sonar.organization>don-vip</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
 	</properties>

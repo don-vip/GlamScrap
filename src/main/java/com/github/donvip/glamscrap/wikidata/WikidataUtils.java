@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.wikidata;
+package com.github.donvip.glamscrap.wikidata;
 
 import static java.util.stream.Collectors.joining;
 

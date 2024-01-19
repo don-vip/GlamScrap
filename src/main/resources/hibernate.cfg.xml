@@ -29,8 +29,8 @@
         <property name="hbm2ddl.auto">update</property>
 
         <!-- Names the annotated entity class -->
-        <mapping class="com.github.donvip.archscrap.domain.Fonds"/>
-        <mapping class="com.github.donvip.archscrap.domain.Notice"/>
+        <mapping class="com.github.donvip.glamscrap.domain.Fonds"/>
+        <mapping class="com.github.donvip.glamscrap.domain.Notice"/>
 
     </session-factory>
 

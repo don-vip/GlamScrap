@@ -1,20 +1,20 @@
 /**
- * This file is part of ArchScrap.
+ * This file is part of GlamScrap.
  *
- *  ArchScrap is free software: you can redistribute it and/or modify
+ *  GlamScrap is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
  *  the Free Software Foundation, either version 3 of the License, or
  *  (at your option) any later version.
  *
- *  ArchScrap is distributed in the hope that it will be useful,
+ *  GlamScrap is distributed in the hope that it will be useful,
  *  but WITHOUT ANY WARRANTY; without even the implied warranty of
  *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  *  GNU General Public License for more details.
  *
  *  You should have received a copy of the GNU General Public License
- *  along with ArchScrap. If not, see <http://www.gnu.org/licenses/>.
+ *  along with GlamScrap. If not, see <http://www.gnu.org/licenses/>.
  */
-package com.github.donvip.archscrap;
+package com.github.donvip.glamscrap;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -44,15 +44,15 @@ import org.hsqldb.util.DatabaseManagerSwing;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
-import com.github.donvip.archscrap.archives.paris.ParisArchScrap;
-import com.github.donvip.archscrap.archives.toulouse.ToulouseArchScrap;
-import com.github.donvip.archscrap.domain.Fonds;
-import com.github.donvip.archscrap.domain.Notice;
-import com.github.donvip.archscrap.uploadtools.Pattypan;
-import com.github.donvip.archscrap.uploadtools.UploadTool;
-import com.github.donvip.archscrap.wikidata.Author;
+import com.github.donvip.glamscrap.domain.Fonds;
+import com.github.donvip.glamscrap.domain.Notice;
+import com.github.donvip.glamscrap.institutions.paris.ParisArchivesGlamScrap;
+import com.github.donvip.glamscrap.institutions.toulouse.ToulouseArchivesGlamScrap;
+import com.github.donvip.glamscrap.uploadtools.Pattypan;
+import com.github.donvip.glamscrap.uploadtools.UploadTool;
+import com.github.donvip.glamscrap.wikidata.Author;
 
-public abstract class ArchScrap implements AutoCloseable {
+public abstract class GlamScrap implements AutoCloseable {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
@@ -97,7 +97,7 @@ public abstract class ArchScrap implements AutoCloseable {
 
     protected final Set<String> missedNotices = new TreeSet<>();
 
-    protected ArchScrap(String city) {
+    protected GlamScrap(String city) {
         LOGGER.debug("Initializing Hibernate...");
         System.setProperty("city", city);
         this.city = city;
@@ -124,7 +124,7 @@ public abstract class ArchScrap implements AutoCloseable {
     }
 
     public static void usage() {
-        LOGGER.info("Usage: ArchScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | pattypan [<fonds>] | gui");
+        LOGGER.info("Usage: GlamScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | pattypan [<fonds>] | gui");
     }
 
     public static void main(String[] args) {
@@ -132,7 +132,7 @@ public abstract class ArchScrap implements AutoCloseable {
         usage();
             return;
         }
-        try (ArchScrap app = buildApp(args[0])) {
+        try (GlamScrap app = buildApp(args[0])) {
             switch (args[1]) {
                 case "scrap":
                     app.doScrap(args);
@@ -173,10 +173,10 @@ public abstract class ArchScrap implements AutoCloseable {
 
     public abstract String getInstitution();
 
-    private static ArchScrap buildApp(String city) {
+    private static GlamScrap buildApp(String city) {
         switch (city) {
-            case "paris": return new ParisArchScrap();
-            case "toulouse": return new ToulouseArchScrap();
+            case "paris": return new ParisArchivesGlamScrap();
+            case "toulouse": return new ToulouseArchivesGlamScrap();
             default: throw new IllegalArgumentException("Unsupported city: " + city);
         }
     }

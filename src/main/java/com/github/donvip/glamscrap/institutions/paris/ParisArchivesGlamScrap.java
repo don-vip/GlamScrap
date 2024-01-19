@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.archives.paris;
+package com.github.donvip.glamscrap.institutions.paris;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -19,15 +19,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import com.github.donvip.archscrap.ArchScrap;
-import com.github.donvip.archscrap.domain.Fonds;
-import com.github.donvip.archscrap.domain.Notice;
-import com.github.donvip.archscrap.wikidata.Author;
+import com.github.donvip.glamscrap.GlamScrap;
+import com.github.donvip.glamscrap.domain.Fonds;
+import com.github.donvip.glamscrap.domain.Notice;
+import com.github.donvip.glamscrap.wikidata.Author;
 
 /**
  * https://archives.paris.fr/a/234/catalogues-des-documents-figures/
  */
-public class ParisArchScrap extends ArchScrap {
+public class ParisArchivesGlamScrap extends GlamScrap {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
@@ -54,7 +54,7 @@ public class ParisArchScrap extends ArchScrap {
         PREDEFINED_AUTHORS.put("Harand, F. (photographe)", new Author("Harand", "François", "photographe"));
     }
 
-    public ParisArchScrap() {
+    public ParisArchivesGlamScrap() {
         super("paris");
     }
 

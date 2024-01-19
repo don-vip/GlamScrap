@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.uploadtools;
+package com.github.donvip.glamscrap.uploadtools;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,14 +11,14 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import com.github.donvip.archscrap.ArchScrap;
-import com.github.donvip.archscrap.domain.Fonds;
+import com.github.donvip.glamscrap.GlamScrap;
+import com.github.donvip.glamscrap.domain.Fonds;
 
 public abstract class UploadTool {
 
     private static final Set<String> LOGGED_MESSAGES = new HashSet<>();
 
-    public void writeUploadFile(Fonds f, ArchScrap cityScrap) throws IOException {
+    public void writeUploadFile(Fonds f, GlamScrap cityScrap) throws IOException {
         Path dir = Files.createDirectories(cityScrap.getDownloadDir(f).resolve("upload"));
         String filename = getClass().getSimpleName().toLowerCase(Locale.ENGLISH) + '.' + getFileExtension();
         try (OutputStream out = Files.newOutputStream(dir.resolve(filename))) {
@@ -26,7 +26,7 @@ public abstract class UploadTool {
         }
     }
 
-    protected abstract void writeContents(Fonds f, ArchScrap cityScrap, OutputStream out) throws IOException;
+    protected abstract void writeContents(Fonds f, GlamScrap cityScrap, OutputStream out) throws IOException;
 
     protected abstract String getFileExtension();
 

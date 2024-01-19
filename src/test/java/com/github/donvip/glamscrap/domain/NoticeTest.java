@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.domain;
+package com.github.donvip.glamscrap.domain;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

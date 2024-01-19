@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.uploadtools;
+package com.github.donvip.glamscrap.uploadtools;
 
 import static java.util.stream.Collectors.joining;
 
@@ -17,11 +17,11 @@ import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 
-import com.github.donvip.archscrap.ArchScrap;
-import com.github.donvip.archscrap.domain.Fonds;
-import com.github.donvip.archscrap.domain.Notice;
-import com.github.donvip.archscrap.wikidata.Author;
-import com.github.donvip.archscrap.wikidata.WikidataUtils;
+import com.github.donvip.glamscrap.GlamScrap;
+import com.github.donvip.glamscrap.domain.Fonds;
+import com.github.donvip.glamscrap.domain.Notice;
+import com.github.donvip.glamscrap.wikidata.Author;
+import com.github.donvip.glamscrap.wikidata.WikidataUtils;
 
 public class Pattypan extends UploadTool {
 
@@ -37,7 +37,7 @@ public class Pattypan extends UploadTool {
     }
 
     @Override
-    protected void writeContents(Fonds f, ArchScrap cityScrap, OutputStream out) throws IOException {
+    protected void writeContents(Fonds f, GlamScrap cityScrap, OutputStream out) throws IOException {
         try (Workbook wb = new HSSFWorkbook()) {
             Path downloadDir = cityScrap.getDownloadDir(f);
             Sheet data = wb.createSheet("Data");

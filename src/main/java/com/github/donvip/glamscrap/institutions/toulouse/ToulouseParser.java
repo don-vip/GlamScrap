@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.archives.toulouse;
+package com.github.donvip.glamscrap.institutions.toulouse;
 
 import java.time.Year;
 import java.time.format.DateTimeParseException;
@@ -17,9 +17,9 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.jsoup.select.Selector.SelectorParseException;
 
-import com.github.donvip.archscrap.Parser;
-import com.github.donvip.archscrap.domain.Fonds;
-import com.github.donvip.archscrap.domain.Notice;
+import com.github.donvip.glamscrap.Parser;
+import com.github.donvip.glamscrap.domain.Fonds;
+import com.github.donvip.glamscrap.domain.Notice;
 
 class ToulouseParser extends Parser {
 

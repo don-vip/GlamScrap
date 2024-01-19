@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.archives.toulouse;
+package com.github.donvip.glamscrap.institutions.toulouse;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,12 +15,12 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import com.github.donvip.archscrap.ArchScrap;
-import com.github.donvip.archscrap.domain.Fonds;
-import com.github.donvip.archscrap.domain.Notice;
-import com.github.donvip.archscrap.wikidata.Author;
+import com.github.donvip.glamscrap.GlamScrap;
+import com.github.donvip.glamscrap.domain.Fonds;
+import com.github.donvip.glamscrap.domain.Notice;
+import com.github.donvip.glamscrap.wikidata.Author;
 
-public class ToulouseArchScrap extends ArchScrap {
+public class ToulouseArchivesGlamScrap extends GlamScrap {
 
     private static final Logger LOGGER = LogManager.getLogger();
 
@@ -39,7 +39,7 @@ public class ToulouseArchScrap extends ArchScrap {
         ALLOWED_GAPS.put("24Fi", new Range(215, 99));
     }
 
-    public ToulouseArchScrap() {
+    public ToulouseArchivesGlamScrap() {
         super("toulouse");
     }
 

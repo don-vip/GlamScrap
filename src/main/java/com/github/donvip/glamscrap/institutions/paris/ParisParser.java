@@ -1,4 +1,4 @@
-package com.github.donvip.archscrap.archives.paris;
+package com.github.donvip.glamscrap.institutions.paris;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -8,8 +8,8 @@ import org.apache.logging.log4j.Logger;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 
-import com.github.donvip.archscrap.Parser;
-import com.github.donvip.archscrap.domain.Notice;
+import com.github.donvip.glamscrap.Parser;
+import com.github.donvip.glamscrap.domain.Notice;
 
 class ParisParser extends Parser {
 
