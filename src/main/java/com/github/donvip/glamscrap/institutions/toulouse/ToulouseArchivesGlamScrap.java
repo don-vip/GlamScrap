@@ -40,7 +40,7 @@ public class ToulouseArchivesGlamScrap extends GlamScrap {
     }
 
     public ToulouseArchivesGlamScrap() {
-        super("toulouse");
+        super("toulouse_archives");
     }
 
     @Override
@@ -105,7 +105,7 @@ public class ToulouseArchivesGlamScrap extends GlamScrap {
             try {
                 Document desc = fetch(String.format("Web_VoirLaNotice/34_01/%s/ILUMP21411", cote.replace("/", "xzx")));
                 if (desc != null) {
-                    n = ToulouseParser.parseNotice(desc, cote);
+                    n = ToulouseArchivesParser.parseNotice(desc, cote);
                     if (n != null) {
                         session.beginTransaction();
                         f.getNotices().add(n);
@@ -129,11 +129,7 @@ public class ToulouseArchivesGlamScrap extends GlamScrap {
     @Override
     protected Fonds createNewFonds(String cote) throws IOException {
         Document doc = fetch(String.format("Web_FondsCClass%s/ILUMP31929", cote));
-        if (doc != null) {
-            return ToulouseParser.parseFonds(doc, cote);
-        } else {
-            return null;
-        }
+        return doc != null ? ToulouseArchivesParser.parseFonds(doc, cote) : null;
     }
 
     @Override

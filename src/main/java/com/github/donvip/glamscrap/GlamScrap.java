@@ -19,6 +19,11 @@ package com.github.donvip.glamscrap;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpRequest.BodyPublishers;
+import java.net.http.HttpResponse;
 import java.nio.channels.Channels;
 import java.nio.channels.ReadableByteChannel;
 import java.nio.file.Files;
@@ -48,6 +53,7 @@ import com.github.donvip.glamscrap.domain.Fonds;
 import com.github.donvip.glamscrap.domain.Notice;
 import com.github.donvip.glamscrap.institutions.paris.ParisArchivesGlamScrap;
 import com.github.donvip.glamscrap.institutions.toulouse.ToulouseArchivesGlamScrap;
+import com.github.donvip.glamscrap.institutions.toulouse.ToulousePhotothequeGlamScrap;
 import com.github.donvip.glamscrap.uploadtools.Pattypan;
 import com.github.donvip.glamscrap.uploadtools.UploadTool;
 import com.github.donvip.glamscrap.wikidata.Author;
@@ -124,7 +130,7 @@ public abstract class GlamScrap implements AutoCloseable {
     }
 
     public static void usage() {
-        LOGGER.info("Usage: GlamScrap [paris|toulouse] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | pattypan [<fonds>] | gui");
+        LOGGER.info("Usage: GlamScrap [paris_archives|toulouse_archives|toulouse_photos] scrap [<fonds>[,<fonds>]*] | check [<fonds>[,<fonds>]*] | download [<fonds>[,<fonds>]*] | pattypan [<fonds>] | gui");
     }
 
     public static void main(String[] args) {
@@ -173,11 +179,12 @@ public abstract class GlamScrap implements AutoCloseable {
 
     public abstract String getInstitution();
 
-    private static GlamScrap buildApp(String city) {
-        switch (city) {
-            case "paris": return new ParisArchivesGlamScrap();
-            case "toulouse": return new ToulouseArchivesGlamScrap();
-            default: throw new IllegalArgumentException("Unsupported city: " + city);
+    private static GlamScrap buildApp(String institution) {
+        switch (institution) {
+            case "paris_archives": return new ParisArchivesGlamScrap();
+            case "toulouse_archives": return new ToulouseArchivesGlamScrap();
+            case "toulouse_photos": return new ToulousePhotothequeGlamScrap();
+            default: throw new IllegalArgumentException("Unsupported institution: " + institution);
         }
     }
 
@@ -373,6 +380,19 @@ public abstract class GlamScrap implements AutoCloseable {
     protected final Document fetch(String doc) throws IOException {
         LOGGER.info("Fetching {}{}", getBaseUrl(), doc);
         return Jsoup.connect(getBaseUrl() + doc).get();
+    }
+
+    protected final String fetchPost(String doc, String body, String...headers) throws IOException, InterruptedException {
+        return fetchPost(HttpRequest.newBuilder()
+                    .headers(headers)
+                    .method("POST", BodyPublishers.ofString(body))
+                    .uri(URI.create(getBaseUrl() + doc)).build());
+    }
+
+    protected final String fetchPost(HttpRequest request) throws IOException, InterruptedException {
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            return client.send(request, HttpResponse.BodyHandlers.ofString()).body();
+        }
     }
 
     public abstract String getOtherFields(Notice n);

@@ -21,7 +21,7 @@ import com.github.donvip.glamscrap.Parser;
 import com.github.donvip.glamscrap.domain.Fonds;
 import com.github.donvip.glamscrap.domain.Notice;
 
-class ToulouseParser extends Parser {
+class ToulouseArchivesParser extends Parser {
 
     private static final Logger LOGGER = LogManager.getLogger();
 

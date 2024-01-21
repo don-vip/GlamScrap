@@ -55,7 +55,7 @@ public class ParisArchivesGlamScrap extends GlamScrap {
     }
 
     public ParisArchivesGlamScrap() {
-        super("paris");
+        super("paris_archives");
     }
 
     @Override
